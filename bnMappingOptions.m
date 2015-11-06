@@ -1,34 +1,14 @@
-function userOptions = phoneticMappingOptions()
-% TODO: We should maintain a policy of setting these values here, and never
-% TODO: modifying them again.  If other data needs to be passed around, it
-% TODO: shouldn't be in this struct.
-%
-%  defineUserOptions is a nullary function which initialises a struct
-%  containing the preferences and details for a particular project.
-%  It should be edited to taste before a project is run, and a new
-%  one created for each substantially different project (though the
-%  options struct will be saved each time the project is run under
-%  a new name, so all will not be lost if you don't do this).
-%
-%  For a guide to how to fill out the fields in this file, consult
-%  the documentation folder (particularly the userOptions_guide.m)
-%
-%  Cai Wingfield 2009-11, 2015-03
-%  Li Su updated 2-2012
-%  Fawad updated 12-2013, 10-2014
-%  Jana updated 10-2014
-%__________________________________________________________________________
-% Copyright (C) 2009 Medical Research Council
+function userOptions = bnMappingOptions()
 
 %%%%%%%%%%%%%%%%%%%%%
 %% Project details %%
 %%%%%%%%%%%%%%%%%%%%%
 
 % This name identifies a collection of files which all belong to the same run of a project.
-userOptions.analysisName = 'masked-lexpro-searchlight';
+userOptions.analysisName = 'bn-searchlight';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_Phonetic_mapping/CWD_win60lag100dnn';
+userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN_mapping/CWD_win110lag100';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -98,7 +78,7 @@ userOptions.maskPath = '/imaging/fj01/cw04/New_Labels/[[maskName]]';
 % For MEG sensor-level analysis, only the use of a single mask is
 % supported.
 userOptions.maskNames = { ...
-    'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
+    ...%'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
     ...%'lateral-lh', 'lateral-rh',...
 };
 
@@ -139,26 +119,6 @@ userOptions.subjectNames = { ...
 userOptions.RoIColor = [0 0 1];
 userOptions.ModelColor = [0 1 0];
 
-% Should information about the experimental design be automatically
-% acquired from SPM metadata?
-% If this option is set to true, the entries in userOptions.conditionLabels
-% MUST correspond to the names of the conditions as specified in SPM.
-userOptions.getSPMData = false;
-
-%% %% %% %% %%
-%% fMRI  %% Use these next three options if you're working in fMRI native space:
-%% %% %% %% %%
-
-% What is the path to the anatomical (structural) fMRI scans for each subject?
-% "[[subjectName]]" should be used to denote an entry in userOptions.subjectNames
-userOptions.structuralsPath = 'pathToWhereYourSubject''s structuralImagesAreStored ';% e.g. /imaging/mb01/lexpro/[[subjectName]]/structurals/
-
-% What are the dimensions (in mm) of the voxels in the scans?
-userOptions.voxelSize = [3 3 3.75];
-
-% What radius of searchlight should be used (mm)?
-userOptions.searchlightRadius = 15;
-
 %% %% %% %% %%
 %%  MEG  %% Use these next four options if you're working in MEG:
 %% %% %% %% %%
@@ -168,55 +128,17 @@ userOptions.averageSurfaceFiles.L = '/imaging/ef02/lexpro/subject/average/surf/l
 userOptions.averageSurfaceFiles.R = '/imaging/ef02/lexpro/subject/average/surf/rh.inflated';
 
 % The width of the sliding window (ms)
-userOptions.temporalSearchlightWidth = 60; %20;
+userOptions.temporalSearchlightWidth = 110; %20;
 
 % The timestep for sliding window (ms)
 userOptions.temporalSearchlightTimestep = 10;
 
 % The overall window of interest for searchlight (ms)
-userOptions.temporalSearchlightLimits = [0 270];
+userOptions.temporalSearchlightLimits = [0 1000];
 
 % Temporal downsampling
 % E.g., a value of 10 here means only taking each 10th point in time.
 userOptions.temporalDownsampleRate = 1;
-
-% Time windows are specified for each region.
-%
-% There should be one entry for each entry in userOptions.maskNames, and
-% they will be treated as corresponding pairs.
-% For example, if there are entries 'mask-a' and 'mask-b' in
-% userOptions.maskNames, and there are entries [0 100] and [-100 200] in
-% userOptions.maskTimeWindows, then [0 100] will go with 'mask-a', and
-% [-100 200] will go with 'mask-b'.
-%
-% For searchlight analysis, these values will be ignored and
-% userOptions.temporalSearchlightLimits will be used instead.
-userOptions.maskTimeWindows = {
-    [0 200],[0 200] ...
-};
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% MEG SENSOR-LEVEL ANALYSIS %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% remove/add sensors in your mask by setting them true/false
-userOptions.MEGSensor_maskSpec.MEGSensors.Gradiometers = true;
-userOptions.MEGSensor_maskSpec.MEGSensors.Magnetometers = true;
-% for each mag and grad: create above mentioned mask by putting sensor
-% numbers in arrays put any values, such as [90 98 100 1 4];
-userOptions.MEGSensor_maskSpec.MEGSensorSites = (1:102);
-
-userOptions.MEGSensor_maskSpec.MEGSensors.EEG = false;
-userOptions.MEGSensor_maskSpec.EEGSensorSites = (1:70);
-
-% The window to be used as baseline.
-userOptions.MEGSensor_maskSpec.baselineWindow = [-100, -50];
-
-% time window for RoI analysis
-userOptions.MEGSensor_maskSpec.timeWindow = [0 200];
-
-% The radius of the sensor searchlight (in adjacent sensors, excluding the centre: 0 => 1 sensor, 1 => ~9)
-userOptions.sensorSearchlightRadius = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% MEG SOURCE-LEVEL ANALYSIS %%
@@ -243,15 +165,6 @@ userOptions.conditionLabels = { ...
     '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', ...
     '14', '15', '16', '17', '18', '19', '20' ...
     };
-userOptions.alternativeConditionLabels = { ...
-    ' ', ...
-    ' ', ...
-    ' ', ...
-    ' ', ...
-    ' ', ...
-    ' ', ...
-    };
-userOptions.useAlternativeConditionLabels = false;
 
 % What colours should be given to the conditions?
 userOptions.conditionColours = [repmat([1 0 0], 48,1); repmat([0 0 1], 44,1)];
@@ -262,14 +175,6 @@ userOptions.distance = 'Correlation';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Second-order analysis %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Which model RDM to test? (This number corresponds to the order in
-% variable Models, which is specified in ModelRDMs.m)
-% TODO: This should be in the recipe, not here.
-
-userOptions.partial_correlation = false;
-% all models listed here will be partialed out from the original model
-userOptions.partial_modelNumber = {5,7};
 
 % Which similarity-measure is used for the second-order comparison.
 userOptions.RDMCorrelationType = 'Spearman';
@@ -307,19 +212,13 @@ userOptions.rankTransform = true;
 %%%%%%%%%%%%%%%%%%%%
 
 % Should rubber bands be shown on the MDS plot?
-userOptions.rubberbands = true;
+userOptions.rubberbands = false;
 
 % What criterion shoud be minimised in MDS display?
 userOptions.criterion = 'metricstress';
 
 % What is the colourscheme for the RDMs?
-userOptions.colourScheme = jet(128); 
-
-% Set any of the following to true to delete files saved as work-in-progress
-% throughout the analysis. This will save space.
-userOptions.deleteTMaps_Dir = false;
-userOptions.deleteImageData_Dir = false;
-userOptions.deletePerm = true;
+userOptions.colourScheme = hot;
 
 % How should figures be outputted?
 userOptions.displayFigures = true;
@@ -344,8 +243,5 @@ userOptions.tightInset = false;
 % prompt may not even be seen.
 % Set to 'a', 'r', 's'; or use '' to not force a reply.
 userOptions.forcePromptReply = 's';
-
-% Present user with graphical feedback?
-userOptions.dialogueBox = false;
 
 end%function
