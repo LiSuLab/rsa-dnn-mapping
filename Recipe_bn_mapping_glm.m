@@ -1,18 +1,12 @@
-% TODO: Documentation
-%
-% Cai Wingfield 2010-05, 2010-08, 2015-03--2015-06
-% update by Li Su 3-2012, 11-2012
-% updated Fawad 12-2013, 02-2014, 10-2014
-
 import rsa.*
 import rsa.util.*
 import rsa.par.*
 import rsa.meg.*
 
-userOptions = phoneticMappingOptions();
+userOptions = bnMappingOptions();
 
 % Here are some I made earlier
-models = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_BN_mapping/Models/bn26_models.mat');
+models = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/bn26_models.mat');
 
 % The lag of the model timeline in miliseconds.
 model_timeline_lag = ...

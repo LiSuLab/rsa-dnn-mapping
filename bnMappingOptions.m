@@ -8,7 +8,7 @@ function userOptions = bnMappingOptions()
 userOptions.analysisName = 'bn-searchlight';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN_mapping/CWD_win110lag100';
+userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win110lag100';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
