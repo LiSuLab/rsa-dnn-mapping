@@ -5,10 +5,10 @@ function userOptions = bnMappingOptions()
 %%%%%%%%%%%%%%%%%%%%%
 
 % This name identifies a collection of files which all belong to the same run of a project.
-userOptions.analysisName = 'bn-searchlight';
+userOptions.analysisName = 'masked-lexpro-searchlight';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win110lag100';
+userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win60lag100_masked';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -51,14 +51,14 @@ userOptions.flush_Queue = true;
 % i.e. when run_in_parallel_in_cluster = true;
 userOptions.wallTime = '24:00:00';
 % Cluster machines requested.
-userOptions.nodesReq = 4;
+userOptions.nodesReq = 8;
 % Processors requested per processor machine.
 userOptions.proPNode = 1;
 % The product of nodesReq and proPNode should be greater or equal to the
 % number of workers requested.
-userOptions.nWorkers = 4;
+userOptions.nWorkers = 8;
 % In gigabytes, to be distributed amongst all nodes.
-userOptions.memReq = 100;
+userOptions.memReq = 400;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Modality-agnostic analysis options %%
@@ -78,7 +78,7 @@ userOptions.maskPath = '/imaging/fj01/cw04/New_Labels/[[maskName]]';
 % For MEG sensor-level analysis, only the use of a single mask is
 % supported.
 userOptions.maskNames = { ...
-    ...%'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
+    'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
     ...%'lateral-lh', 'lateral-rh',...
 };
 
@@ -134,7 +134,10 @@ userOptions.temporalSearchlightWidth = 110; %20;
 userOptions.temporalSearchlightTimestep = 10;
 
 % The overall window of interest for searchlight (ms)
-userOptions.temporalSearchlightLimits = [0 1000];
+userOptions.temporalSearchlightLimits = [0, 270];
+
+% TODO: THis should n't be needed, bu tit is.
+userOptions.maskTimeWindows = {[0,270], [0,270]};
 
 % Temporal downsampling
 % E.g., a value of 10 here means only taking each 10th point in time.
