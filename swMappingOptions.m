@@ -8,7 +8,7 @@ function userOptions = swMappingOptions()
 userOptions.analysisName = 'multilayer-sliding-window';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_sw';
+userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_sw25';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -82,15 +82,6 @@ userOptions.maskNames = { ...
     'transversetemporal-lh',    'transversetemporal-rh'     ...
 };
 
-% The type of pattern to look at.
-% Options are:
-%     Correlate over space ('spatial')
-%     Correlate over time ('temporal')
-%     Correlate over space and time ('spatiotemporal')
-% For fMRI, the available options are 'spatial'.
-% For MEG, the all options are available.
-userOptions.searchlightPatterns = 'spatiotemporal';
-
 %%%%%%%%%%%%%%%%%%%%%%%%
 %% EXPERIMENTAL SETUP %%
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,10 +106,6 @@ userOptions.subjectNames = { ...
     'meg08_0402' ...
 };% eg CBUXXXXX
 
-% The default colour label for RDMs corresponding to RoI masks (as opposed to models).
-userOptions.RoIColor = [0 0 1];
-userOptions.ModelColor = [0 1 0];
-
 %% %% %% %% %%
 %%  MEG  %% Use these next four options if you're working in MEG:
 %% %% %% %% %%
@@ -128,16 +115,13 @@ userOptions.averageSurfaceFiles.L = '/imaging/ef02/lexpro/subject/average/surf/l
 userOptions.averageSurfaceFiles.R = '/imaging/ef02/lexpro/subject/average/surf/rh.inflated';
 
 % The width of the sliding window (ms)
-userOptions.temporalSearchlightWidth = 110; %20;
+userOptions.temporalSearchlightWidth = 25; %20;
 
 % The timestep for sliding window (ms)
 userOptions.temporalSearchlightTimestep = 10;
 
 % The overall window of interest for searchlight (ms)
-userOptions.temporalSearchlightLimits = [0, 270];
-
-% TODO: THis should n't be needed, bu tit is.
-userOptions.maskTimeWindows = {[0,270], [0,270]};
+userOptions.temporalSearchlightLimits = [-50, 250];
 
 % Temporal downsampling
 % E.g., a value of 10 here means only taking each 10th point in time.
@@ -146,9 +130,6 @@ userOptions.temporalDownsampleRate = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% MEG SOURCE-LEVEL ANALYSIS %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% The radius of the source-space searchlight (in mm)
-userOptions.sourceSearchlightRadius = 20;
 
 % Spatial downsampling.
 % Set the target number of vertices per hemisphere.
@@ -162,15 +143,6 @@ userOptions.minDist = 5; %mm
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %% First-order analysis %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Text lables which may be attached to the conditions for MDS plots.
-userOptions.conditionLabels = { ...
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', ...
-    '14', '15', '16', '17', '18', '19', '20' ...
-    };
-
-% What colours should be given to the conditions?
-userOptions.conditionColours = [repmat([1 0 0], 48,1); repmat([0 0 1], 44,1)];
 
 % Which distance measure to use when calculating first-order RDMs.
 userOptions.distance = 'Correlation';
