@@ -1,81 +1,85 @@
-% sliding time window analysis for ROIs
-% Written by Isma Zulfiqar 12-12 -- Updated 03/13
-% Updated by Fawad 03-2014, 10-2014
+import rsa.*
+import rsa.util.*
+import rsa.par.*
+import rsa.meg.*
 
-function Recipe_sliding_time_window(which_model)
-
-%%%%%%%%%%%%%%%%%%%%
 %% Initialisation %%
-%%%%%%%%%%%%%%%%%%%%
-toolboxRoot = '/imaging/fj01/latest_toolbox'; addpath(genpath(toolboxRoot)); % Catch sight of the toolbox code
 
-userOptions = projectOptions();
+userOptions = bnMappingOptions();
 
+models = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/multilayer_model_RDMs_static_frame_5.mat');
+n_models = numel(models);
+
+
+%% %%%%%%%%%%%%%%%%%%%
+prints('Preparing masks...');
+%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: Don't enforce use of both hemispheres
+
+usingMasks = ~isempty(userOptions.maskNames);
+if usingMasks
+    slMasks = MEGMaskPreparation_source(userOptions);
+    % For this searchlight analysis, we combine all masks into one
+    slMasks = combineVertexMasks_source(slMasks, 'combined_mask', userOptions);  
+else
+    slMasks = allBrainMask(userOptions);
+end
+
+% TODO: Only need one mesh adjacency here - they're the same for both
+% hemispheres.
+
+adjacencyMatrices = calculateMeshAdjacency(userOptions.targetResolution, userOptions.sourceSearchlightRadius, userOptions, 'hemis', 'LR');
+
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+prints('Starting parallel toolbox...');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Starting parallel toolbox %%
-%%%%%%%%%%%%%%%%%%%%
+
 if userOptions.flush_Queue
-    rsa.par.flushQ();
+    flushQ();
 end
+
 if userOptions.run_in_parallel
-    p = rsa.par.initialise_CBU_Queue(userOptions);
+    p = initialise_CBU_Queue(userOptions);
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Model RDM calculation %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-models = load('/imaging/cw04/Lexpro/analysis_bn_mapping_scripts/models/
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Sliding time window RoI analysis %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% %%%%%%%%%%%%%%%%%%
+prints('Loading brain data...');
+%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: Bring the parfor loop outside of this
+
+[meshPaths, STCMetadatas] = MEGDataPreparation_source( ...
+    lexproBetaCorrespondence(), ...
+    userOptions, ...
+    'mask', slMasks);
+
+swRDMPaths = slidingWindowRDMs_source(meshPaths, userOptions);
+
+averageSWRDMPaths = averageSlidingWindowRDMs(swRDMPaths, userOptions);
+
+for model_i = 1:n_models
+    model = modelRDMs(model_i);
     
-map_type = 'r';
+    prints('Sliding-window RSA for model "%s"...', model);
+    
+    % TODO: This shouldn't enforce left and right - it should be implicit from the mask name?
+    ROI_sliding_TimeWindow(meshPaths, model, userOptions)
+end
 
-    %%%%%%%%%%%%%%%%%%%%%%%
-    %% Compute Data RDMs %%
-    %%%%%%%%%%%%%%%%%%%%%%%
-    tic
-    rsa.meg.ROI_slidingTimeWindow(userOptions, model);
-    toc
-    %%%%%%%%%%%%%%%%%
-    %% Permutation %%
-    %%%%%%%%%%%%%%%%%
-    tic
-    if strcmp(userOptions.groupStats,'FFX')
-        rsa.meg.FFX_slidingTimeWindow(userOptions,model, partialModels);
-    elseif strcmp(userOptions.groupStats,'RFX')
-    rsa.meg.RFX_slidingTimeWindow(userOptions, model, partialModels, map_type);
-    end
-    toc
-    %%%%%%%%%%%%%%%%%%%%%
-    %% Display Results %%
-    %%%%%%%%%%%%%%%%%%%%%
-    rsa.meg.showResults_slidingTimeWindow(userOptions, model, map_type);
 
-%%%%%%%%%%%%%%%%%%%%
-%% Sending an email %%
-%%%%%%%%%%%%%%%%%%%%
+%% Send an email
+
 if userOptions.recieveEmail
     rsa.par.setupInternet();
     rsa.par.setupEmail(userOptions.mailto);
 end
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Stopping parallel toolbox %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Stop parallel toolbox
+
 if userOptions.run_in_parallel;
-    % Close the parpool.
     delete(p);
-end
-
-%%%%%%%%%%%%%%%%%%%%
-%% Delete Selected Directories%%
-%%%%%%%%%%%%%%%%%%%%
-
-if (userOptions.deleteTMaps_Dir || userOptions.deleteImageData_Dir || userOptions.deletePerm)
-    rsa.util.deleteDir(userOptions, model);
-end
-
-
 end
