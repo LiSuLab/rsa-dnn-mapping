@@ -3,9 +3,12 @@ import rsa.util.*
 import rsa.par.*
 import rsa.meg.*
 
-%% Initialisation %%
+userOptions = swMappingOptions();
 
-userOptions = bnMappingOptions();
+
+%% %%%%%%%%%%%%%%%%%%%
+prints('Running toolbox for %s', userOptions.analysisName);
+%%%%%%%%%%%%%%%%%%%%%%
 
 models = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/multilayer_model_RDMs_static_frame_5.mat');
 n_models = numel(models);
