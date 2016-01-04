@@ -1,8 +1,3 @@
-import rsa.*
-import rsa.util.*
-import rsa.par.*
-import rsa.meg.*
-
 userOptions = swMappingOptions();
 
 
@@ -10,8 +5,8 @@ userOptions = swMappingOptions();
 prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-models = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/multilayer_model_RDMs_static_frame_5.mat');
-n_models = numel(models);
+modelRDMs = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/multilayer_model_RDMs_static_frame_5.mat');
+n_models = numel(modelRDMs);
 
 
 %% %%%%%%%%%%%%%%%%%%%
@@ -20,8 +15,7 @@ prints('Preparing masks...');
 
 % TODO: Don't enforce use of both hemispheres
 
-usingMasks = ~isempty(userOptions.maskNames);
-if usingMasks
+if ~isempty(userOptions.maskNames)
     slMasks = MEGMaskPreparation_source(userOptions);
     % For this searchlight analysis, we combine all masks into one
     slMasks = combineVertexMasks_source(slMasks, 'combined_mask', userOptions);  
@@ -59,17 +53,17 @@ prints('Loading brain data...');
     userOptions, ...
     'mask', slMasks);
 
-swRDMPaths = slidingWindowRDMs_source(meshPaths, userOptions);
+swRDMsPaths = MEGSlidingWindowRDMs_source(meshPaths, STCMetadatas, userOptions);
 
-averageSWRDMPaths = averageSlidingWindowRDMs(swRDMPaths, userOptions);
+aswRDMsPaths = averageSlidingWindowRDMs(swRDMPaths, userOptions);
 
-for model_i = 1:n_models
-    model = modelRDMs(model_i);
+parfor model_i = 1:n_models
+    modelRDM = modelRDMs(model_i);
     
-    prints('Sliding-window RSA for model "%s"...', model);
+    prints('Sliding-window RSA for model "%s"...', modelRDM);
     
     % TODO: This shouldn't enforce left and right - it should be implicit from the mask name?
-    ROI_sliding_TimeWindow(meshPaths, model, userOptions)
+    output_Rs(model_i, :) = rsa.meg.sliding_time_window_source(aswRDMsPaths, modelRDM, userOptions);
 end
 
 
