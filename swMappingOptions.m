@@ -127,6 +127,10 @@ userOptions.temporalSearchlightLimits = [-50, 250];
 % E.g., a value of 10 here means only taking each 10th point in time.
 userOptions.temporalDownsampleRate = 1;
 
+% TODO: this is a bad name for this, as it's all spatiotemporal data, not
+% just searchlights.
+userOptions.searchlightPatterns = 'spatiotemporal';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% MEG SOURCE-LEVEL ANALYSIS %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
