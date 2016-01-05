@@ -2,62 +2,57 @@ userOptions = swMappingOptions();
 
 
 %% %%%%%%%%%%%%%%%%%%%
-prints('Running toolbox for %s', userOptions.analysisName);
+rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-modelRDMs = directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/multilayer_model_RDMs_static_frame_5.mat');
+modelRDMs = rsa.util.directLoad('/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/Models/multilayer_model_RDMs_static_frame_5.mat');
 n_models = numel(modelRDMs);
 
 
 %% %%%%%%%%%%%%%%%%%%%
-prints('Preparing masks...');
+rsa.util.prints('Preparing masks...');
 %%%%%%%%%%%%%%%%%%%%%%
 
 % TODO: Don't enforce use of both hemispheres
 
 if ~isempty(userOptions.maskNames)
-    slMasks = MEGMaskPreparation_source(userOptions);
+    slMasks = rsa.meg.MEGMaskPreparation_source(userOptions);
     % For this searchlight analysis, we combine all masks into one
-    slMasks = combineVertexMasks_source(slMasks, 'combined_mask', userOptions);  
+    slMasks = rsa.meg.combineVertexMasks_source(slMasks, 'combined_mask', userOptions);  
 else
-    slMasks = allBrainMask(userOptions);
+    slMasks = rsa.meg.allBrainMask(userOptions);
 end
-
-% TODO: Only need one mesh adjacency here - they're the same for both
-% hemispheres.
-
-adjacencyMatrices = calculateMeshAdjacency(userOptions.targetResolution, userOptions.sourceSearchlightRadius, userOptions, 'hemis', 'LR');
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-prints('Starting parallel toolbox...');
+rsa.util.prints('Starting parallel toolbox...');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if userOptions.flush_Queue
-    flushQ();
+    rsa.par.flushQ();
 end
 
 if userOptions.run_in_parallel
-    p = initialise_CBU_Queue(userOptions);
+    p = rsa.par.initialise_CBU_Queue(userOptions);
 end
 
 
 %% %%%%%%%%%%%%%%%%%%
-prints('Loading brain data...');
+rsa.util.prints('Loading brain data...');
 %%%%%%%%%%%%%%%%%%%%%
 
 % TODO: Bring the parfor loop outside of this
 
-[meshPaths, STCMetadatas] = MEGDataPreparation_source( ...
+[meshPaths, STCMetadatas] = rsa.meg.MEGDataPreparation_source( ...
     lexproBetaCorrespondence(), ...
     userOptions, ...
     'mask', slMasks);
 
-swRDMsPaths = MEGSlidingWindowRDMs_source(meshPaths, STCMetadatas, userOptions);
+swRDMsPaths = rsa.meg.MEGSlidingWindowRDMs_source(meshPaths, STCMetadatas, userOptions);
 
-aswRDMsPaths = averageSlidingWindowRDMs(swRDMPaths, userOptions);
+aswRDMsPaths = rsa.meg.averageSlidingWindowRDMs(swRDMPaths, userOptions);
 
-parfor model_i = 1:n_models
+for model_i = 1:n_models
     modelRDM = modelRDMs(model_i);
     
     prints('Sliding-window RSA for model "%s"...', modelRDM);

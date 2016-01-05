@@ -8,7 +8,7 @@ function userOptions = bnMappingOptions()
 userOptions.analysisName = 'masked-lexpro-searchlight';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win60lag100_masked';
+userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win25lag100_lateral';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -51,14 +51,14 @@ userOptions.flush_Queue = true;
 % i.e. when run_in_parallel_in_cluster = true;
 userOptions.wallTime = '24:00:00';
 % Cluster machines requested.
-userOptions.nodesReq = 8;
+userOptions.nodesReq = 6;
 % Processors requested per processor machine.
 userOptions.proPNode = 1;
 % The product of nodesReq and proPNode should be greater or equal to the
 % number of workers requested.
-userOptions.nWorkers = 8;
+userOptions.nWorkers = 6;
 % In gigabytes, to be distributed amongst all nodes.
-userOptions.memReq = 400;
+userOptions.memReq = 270;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Modality-agnostic analysis options %%
@@ -67,8 +67,8 @@ userOptions.memReq = 400;
 % The path to a stereotypical mask data file is stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
 % "[[maskName]]" should be used as a placeholder to denote an entry in userOptions.maskNames
-userOptions.maskPath = '/imaging/fj01/cw04/New_Labels/[[maskName]]';
-%userOptions.maskPath = '/imaging/ef02/lexpro/subject/average/label/[[maskName]]';
+%userOptions.maskPath = '/imaging/fj01/cw04/New_Labels/[[maskName]]';
+userOptions.maskPath = '/imaging/ef02/lexpro/subject/average/label/[[maskName]]';
 
 % The list of mask filenames (minus .hdr extension) to be used.
 % For MEG, names should be in pairs, such as maskName-lh,
@@ -78,8 +78,8 @@ userOptions.maskPath = '/imaging/fj01/cw04/New_Labels/[[maskName]]';
 % For MEG sensor-level analysis, only the use of a single mask is
 % supported.
 userOptions.maskNames = { ...
-    'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
-    ...%'lateral-lh', 'lateral-rh',...
+    ...%'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
+    'lateral-lh', 'lateral-rh',...
 };
 
 % The type of pattern to look at.
@@ -128,16 +128,16 @@ userOptions.averageSurfaceFiles.L = '/imaging/ef02/lexpro/subject/average/surf/l
 userOptions.averageSurfaceFiles.R = '/imaging/ef02/lexpro/subject/average/surf/rh.inflated';
 
 % The width of the sliding window (ms)
-userOptions.temporalSearchlightWidth = 110; %20;
+userOptions.temporalSearchlightWidth = 25;
 
 % The timestep for sliding window (ms)
 userOptions.temporalSearchlightTimestep = 10;
 
 % The overall window of interest for searchlight (ms)
-userOptions.temporalSearchlightLimits = [0, 270];
+userOptions.temporalSearchlightLimits = [0, 400];
 
 % TODO: THis should n't be needed, bu tit is.
-userOptions.maskTimeWindows = {[0,270], [0,270]};
+userOptions.maskTimeWindows = {[0,400], [0,400]};
 
 % Temporal downsampling
 % E.g., a value of 10 here means only taking each 10th point in time.
@@ -152,7 +152,7 @@ userOptions.sourceSearchlightRadius = 20;
 
 % Spatial downsampling.
 % Set the target number of vertices per hemisphere.
-userOptions.targetResolution = 10242;
+userOptions.targetResolution = 5121;%10242;
 
 % TODO: Explain this
 % 5mm is the smallest distance between two adjacent vertex in 10242 resolution.
@@ -164,10 +164,7 @@ userOptions.minDist = 5; %mm
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Text lables which may be attached to the conditions for MDS plots.
-userOptions.conditionLabels = { ...
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', ...
-    '14', '15', '16', '17', '18', '19', '20' ...
-    };
+userOptions.conditionLabels = {};
 
 % What colours should be given to the conditions?
 userOptions.conditionColours = [repmat([1 0 0], 48,1); repmat([0 0 1], 44,1)];

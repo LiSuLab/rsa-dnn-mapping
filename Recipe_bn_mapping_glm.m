@@ -35,7 +35,7 @@ end
 % TODO: Only need one mesh adjacency here - they're the same for both
 % hemispheres.
 
-adjacencyMatrices = calculateMeshAdjacency(userOptions.targetResolution, userOptions.sourceSearchlightRadius, userOptions, 'hemis', 'LR');
+adjacencyMatrix = calculateMeshAdjacency(userOptions.targetResolution, userOptions.sourceSearchlightRadius, userOptions);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,8 +70,7 @@ prints('Searchlight Brain RDM Calculation...');
 [RDMsPaths, slSTCMetadatas] = MEGSearchlightRDMs_source( ...
     meshPaths, ...
     slMasks, ...
-    ...% Assume that both hemis' adjacency matrices are the same so only use one.
-    adjacencyMatrices.L, ...
+    adjacencyMatrix, ...
     STCMetadatas, ...
     userOptions);
 
@@ -113,7 +112,7 @@ prints('Doing some statistics...');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 confidence_level = 0.95;
-n_flips = 1000;%0;
+n_flips = 1000;
 
 vertex_level_threshold = RFX_Su( ...
     sl_map_paths, ...
