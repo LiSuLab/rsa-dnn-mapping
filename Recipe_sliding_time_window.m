@@ -104,13 +104,14 @@ swRDMsPaths = rsa.meg.MEGSlidingWindowRDMs_source(meshPaths, STCMetadatas, userO
 
 aswRDMsPaths = rsa.meg.averageSlidingWindowRDMs(swRDMsPaths, userOptions);
 
-for model_i = 1:n_models
-    modelRDM = modelRDMs(model_i);
-    
-    rsa.util.prints('Sliding-window RSA for model "%s"...', modelRDM.Name);
-    
-    % TODO: This shouldn't enforce left and right - it should be implicit from the mask name?
-    [output_Rs_L(model_i, :), output_Rs_R(model_i, :)] = rsa.meg.sliding_time_window_source(aswRDMsPaths, modelRDM, userOptions);
+for subject_i = 1:numel(userOptions.subjectNames)
+    for model_i = 1:n_models
+        modelRDM = modelRDMs(model_i);
+
+        rsa.util.prints('Sliding-window RSA for model "%s"...', modelRDM.Name);
+
+        [output_Rs_L(model_i, :, subject_i), output_Rs_R(model_i, :, subject_i)] = rsa.meg.sliding_time_window_source(swRDMsPaths(subject_i), modelRDM, userOptions);
+    end
 end
 
 
