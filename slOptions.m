@@ -1,14 +1,14 @@
-function userOptions = bnMappingOptions()
+function userOptions = slOptions()
 
 %%%%%%%%%%%%%%%%%%%%%
 %% Project details %%
 %%%%%%%%%%%%%%%%%%%%%
 
 % This name identifies a collection of files which all belong to the same run of a project.
-userOptions.analysisName = 'masked-lexpro-searchlight';
+userOptions.analysisName = 'lexpro-bn-searchlight';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win25lag100_lateral';
+userOptions.rootPath = '/imaging/cw04/Neurolex/Lexpro/Analysis_DNN/CWD_win25_lateral';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
