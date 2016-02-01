@@ -1,4 +1,4 @@
-function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPath, slMask, model, partialModels, adjacencyMatrix, STCMetadatas, userOptions)
+function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDMPath, slMask, model, adjacencyMatrix, STCMetadatas, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -7,17 +7,11 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPa
     import rsa.util.*
 
     returnHere = pwd; % We'll come back here later
-
-    subjectName = userOptions.subjectNames{subject_i};
     nSubjects = numel(userOptions.subjectNames);
 
     usingMasks = ~isempty(userOptions.maskNames);
 
-    if userOptions.partial_correlation
-        modelName = [spacesToUnderscores(model.name), '_partialCorr'];
-    else
-        modelName = spacesToUnderscores(model.name);
-    end
+    modelName = spacesToUnderscores(model.name);
 
     %% File paths
 
@@ -39,8 +33,6 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPa
 
     if overwriteFlag
 
-        prints('Shining RSA searchlight in the %s source mesh of subject %d of %d...', lower(chi),  subject_i, nSubjects);
-
         gotoDir(fullfile(userOptions.rootPath, 'Maps', modelName));
 
         tic;%1
@@ -49,11 +41,8 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPa
 
         searchlightRDMs = directLoad(RDMPath, 'searchlightRDMs');
 
-        if userOptions.partial_correlation
-            thisSubjectRs = searchlightMapping_MEG_source(searchlightRDMs, slMask, model, partialModels, adjacencyMatrix, slSpecs.(chi), userOptions); %#ok<ASGLU>
-        else
-            thisSubjectRs = searchlightMapping_MEG_source(searchlightRDMs, slMask, model, [], adjacencyMatrix, slSpecs.(chi), userOptions); %#ok<ASGLU>
-        end
+        thisSubjectRs = searchlightMapping_MEG_source(searchlightRDMs, slMask, model, slSpecs.(chi), userOptions);
+        
         clear sourceMeshesThisSubjectThisHemi;
 
         rSTCStruct          = slSTCMetadatas.(chi);
@@ -77,19 +66,19 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPa
 
     cd(returnHere); % And go back to where you started
 
-    end%function
+end%function
 
-    %%%%%%%%%%%%%%%%%%
-    %% Subfunctions %%
-    %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%
+%% Subfunctions %%
+%%%%%%%%%%%%%%%%%%
 
-    % [smm_rs, searchlightRDMs] = searchlightMapping_MEG_source(singleSubjectMesh, indexMask, modelRDM, partialModelRDMs, adjacencyMatrix, slSpec, userOptions)
-    %
-    % Based on Li Su's script
-    % CW 2010-05, 2015-03
-    % updated by Li Su 3-2012
+% [smm_rs, searchlightRDMs] = searchlightMapping_MEG_source(singleSubjectMesh, indexMask, modelRDM, slSpec, userOptions)
+%
+% Based on Li Su's script
+% CW 2010-05, 2015-03
+% updated by Li Su 3-2012
 
-    function [smm_rs, searchlightRDMs] = searchlightMapping_MEG_source(searchlightRDMs, indexMask, modelRDM, partialModelRDMs, adjacencyMatrix, slSpecs, userOptions)
+function [smm_rs, searchlightRDMs] = searchlightMapping_MEG_source(searchlightRDMs, indexMask, modelRDM, slSpecs, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -98,11 +87,6 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPa
     import rsa.util.*
 
     modelRDM_utv = squeeze(unwrapRDMs(vectorizeRDMs(modelRDM)));
-
-    if userOptions.partial_correlation
-        % TODO: should be transposed?
-        control_for_modelRDMs = unwrapRDMs(vectoriseRDMs(partialModelRDMs));
-    end
 
     [nVertices_masked, nTimePoints_masked] = size(searchlightRDMs);
 
@@ -137,9 +121,6 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subject_i, chi, RDMPa
             % TODO: anywhere (this is being done on another branch)
             if strcmpi(userOptions.RDMCorrelationType, 'Kendall_taua')
                 rs = rankCorr_Kendall_taua(searchlightRDM', modelRDM_utv');
-            elseif userOptions.partial_correlation
-                % TODO: Consider partialcorr with Kendall's tau
-                rs = partialcorr(searchlightRDM', modelRDM_utv', control_for_modelRDMs', 'type', userOptions.RDMCorrelationType, 'rows','pairwise');
             else
                 rs = corr(searchlightRDM', modelRDM_utv', 'type', userOptions.RDMCorrelationType, 'rows', 'pairwise');
             end
