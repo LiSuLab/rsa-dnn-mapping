@@ -1,4 +1,4 @@
-userOptions = swMappingOptions();
+userOptions = slOptions();
 
 
 %% %%%%%%%%%%%%%%%%%%%
