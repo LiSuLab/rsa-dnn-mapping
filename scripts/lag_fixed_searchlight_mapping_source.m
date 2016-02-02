@@ -1,27 +1,19 @@
-function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDMPath, slMask, model, adjacencyMatrix, STCMetadatas, userOptions)
+function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDMPath, slMask, modelRDM, model_lag_ms, STCMetadatas, userOptions)
 
     import rsa.*
     import rsa.meg.*
-    import rsa.rdm.*
-    import rsa.stat.*
     import rsa.util.*
-
-    returnHere = pwd; % We'll come back here later
-    nSubjects = numel(userOptions.subjectNames);
-
-    usingMasks = ~isempty(userOptions.maskNames);
-
-    modelName = spacesToUnderscores(model.name);
 
     %% File paths
 
-    mapsDir = fullfile(userOptions.rootPath, 'Maps', modelName);
-    if usingMasks
-        mapsFile = [userOptions.analysisName '_rMesh_' modelName '_' subjectName '_masked-' lower(chi) 'h.stc'];
-    else
-        mapsFile = [userOptions.analysisName '_rMesh_' modelName '_' subjectName '-' lower(chi) 'h.stc'];
-    end
-    mapsPath = fullfile(mapsDir, mapsFile);
+    mapsDir = fullfile(userOptions.rootPath, 'Maps');
+    mapsFileName = fprintf('%s_rMesh_%s_lagfix%dms_sub%s-%sh.stc', ...
+        userOptions.analysisName, ...
+        spacesToUnderscores(modelRDM.name), ...
+        model_lag_ms, ...
+        subjectName, ...
+        lower(chi));
+    mapsPath = fullfile(mapsDir, mapsFileName);
 
     promptOptions.functionCaller = 'searchlightMapping_source';
     promptOptions.defaultResponse = 'S';
@@ -33,113 +25,73 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDM
 
     if overwriteFlag
 
-        gotoDir(fullfile(userOptions.rootPath, 'Maps', modelName));
-
-        tic;%1
-
         [slSpecs, slSTCMetadatas] = getSearchlightSpec(STCMetadatas, userOptions);
 
         searchlightRDMs = directLoad(RDMPath, 'searchlightRDMs');
 
-        thisSubjectRs = searchlightMapping_MEG_source(searchlightRDMs, slMask, model, slSpecs.(chi), userOptions);
+        modelRDM_utv = squeeze(unwrapRDMs(vectorizeRDMs(modelRDM)));
         
-        clear sourceMeshesThisSubjectThisHemi;
+        n_mask_vertices = numel(indexMask.vertices);
 
+        % The number of positions the sliding window will take.
+        nWindowPositions = size(slSpecs.windowPositions, 1);
+
+        %% map the volume with the searchlight
+
+        % Preallocate looped matrices for speed
+        thisSubjectRs = zeros(n_mask_vertices, nWindowPositions);
+
+        % For display purposes
+        nVertsSearched = 0;
+
+        % Search the vertices
+        for v_i = 1:n_mask_vertices
+
+            % Search through time
+            window_i = 0;
+            for window = slSpecs.windowPositions'
+                
+                % This counts the windows (1-indexed) as they are
+                % considered.
+                window_i = window_i + 1;
+
+                % Get this RDM by vertex and window indices, as that's how 
+                % it was stored.
+                patchRDM = searchlightRDMs(v_i, window_i).RDM;
+
+                rs = corr(patchRDM', modelRDM_utv', 'type', userOptions.RDMCorrelationType, 'rows', 'pairwise');
+
+                % Store results to be retured.
+                thisSubjectRs(v_i, window_i) = rs;
+
+            end%for:window
+
+            % Indicate progress every once in a while...
+            nVertsSearched = nVertsSearched + 1;
+            if mod(nVertsSearched, 200) == 0
+                prints('%d vertices searched: %d%% complete', nVertsSearched, floor((nVertsSearched / numel(indexMask.vertices)) * 100));
+            end%if
+
+        end%for:v
+
+        % Wrap in a metadata struct
+        
         rSTCStruct          = slSTCMetadatas.(chi);
         rSTCStruct.vertices = slMask.vertices;
         % thisSubjectRs contains only the data inside the mask, but since the
         % vertices are stored in this struct, that should be ok.
         rSTCStruct.data     = thisSubjectRs(:,:);
+        % Correct for lag.
+        rSTCStruct.tmin     = rSTCStruct.tmin - model_lag_ms;
 
         %% Saving r-maps and RDM maps
 
         prints('Writing r-map %s.', mapsPath);
         gotoDir(mapsDir);
         mne_write_stc_file1(mapsPath, rSTCStruct);
-
-        %% Done
-        t = toc;%1
-        prints('That took %s seconds.', t);
+        
     else
         prints('Searchlight already applied, skipping it.');
     end
-
-    cd(returnHere); % And go back to where you started
-
-end%function
-
-%%%%%%%%%%%%%%%%%%
-%% Subfunctions %%
-%%%%%%%%%%%%%%%%%%
-
-% [smm_rs, searchlightRDMs] = searchlightMapping_MEG_source(singleSubjectMesh, indexMask, modelRDM, slSpec, userOptions)
-%
-% Based on Li Su's script
-% CW 2010-05, 2015-03
-% updated by Li Su 3-2012
-
-function [smm_rs, searchlightRDMs] = searchlightMapping_MEG_source(searchlightRDMs, indexMask, modelRDM, slSpecs, userOptions)
-
-    import rsa.*
-    import rsa.meg.*
-    import rsa.rdm.*
-    import rsa.stat.*
-    import rsa.util.*
-
-    modelRDM_utv = squeeze(unwrapRDMs(vectorizeRDMs(modelRDM)));
-
-    [nVertices_masked, nTimePoints_masked] = size(searchlightRDMs);
-
-    % The number of positions the sliding window will take.
-    nWindowPositions = size(slSpecs.windowPositions, 1);
-
-    %% map the volume with the searchlight
-
-    % Preallocate looped matrices for speed
-    smm_rs = zeros(nVertices_masked, nWindowPositions);
-
-    % For display purposes
-    nVertsSearched = 0;
-
-    % Search the vertices
-    for v_i = 1:numel(indexMask.vertices)
-        % v_i loops through the *indices of* vertices in the mask
-        % v is the vertex itself
-
-        v = indexMask.vertices(v_i);
-
-        % Search through time
-        window_i = 0;
-        for window = slSpecs.windowPositions'
-            % thisWindow is the indices of timepoints in each window
-            thisWindow = window(1):window(2);
-            window_i = window_i + 1;
-
-            searchlightRDM = searchlightRDMs(v, window).RDM;
-
-            % TODO: Refactor this into general method so it can be used
-            % TODO: anywhere (this is being done on another branch)
-            if strcmpi(userOptions.RDMCorrelationType, 'Kendall_taua')
-                rs = rankCorr_Kendall_taua(searchlightRDM', modelRDM_utv');
-            else
-                rs = corr(searchlightRDM', modelRDM_utv', 'type', userOptions.RDMCorrelationType, 'rows', 'pairwise');
-            end
-
-            % Store results to be retured.
-            smm_rs(v_i, window_i) = rs;
-
-        end%for:window
-
-        % Indicate progress every once in a while...
-        nVertsSearched = nVertsSearched + 1;
-        if mod(nVertsSearched, 200) == 0
-            prints('%d vertices searched: %d%% complete', nVertsSearched, floor((nVertsSearched / numel(indexMask.vertices)) * 100));
-        end%if
-
-    end%for:v
-
-    if userOptions.fisher
-        smm_rs = fisherTransform(smm_rs);
-    end%if
 
 end%function

@@ -8,6 +8,8 @@ rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 dRDM = dynamic_bn_models();
 n_lags = numel(dRDM);
 
+MODEL_TIMESTEP_ms = 10;
+
 %% %%%%%%%%%%%%%%%%%%%
 rsa.util.prints( ...
     'Preparing masks...');
@@ -88,6 +90,8 @@ for subject_i = 1:nSubjects
        rsa.util.prints('Subject %d/%d (%sh)...', subject_i, n_subjects, chi);
        
        parfor lag_i = 1:n_lags
+           
+           this_lag_ms = (lag_i - 1) * MODEL_TIMESTEP_ms;
        
            rsa.util.prints('\tLag %d/%d...', lag_i, n_lags);
 
@@ -98,8 +102,7 @@ for subject_i = 1:nSubjects
                RDMPaths(subject_i).(chi), ...
                ...% Use the mask for this hemisphere only
                slMasks([slMasks.chi] == chi), ...
-               model, ...
-               adjacencyMatrix, ...
+               dRDM(lag_i), this_lag_ms, ...
                STCMetadatas.(chi), ...
                userOptions ...
            );
