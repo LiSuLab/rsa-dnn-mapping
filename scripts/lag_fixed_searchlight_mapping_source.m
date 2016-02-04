@@ -57,7 +57,7 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDM
 
                 % Get this RDM by vertex and window indices, as that's how 
                 % it was stored.
-                patchRDM = searchlightRDMs(v_i, window_i).RDM;
+                patchRDM = squeeze(searchlightRDMs(v_i, window_i, :));
 
                 rs = corr(patchRDM', modelRDM_utv', 'type', userOptions.RDMCorrelationType, 'rows', 'pairwise');
 

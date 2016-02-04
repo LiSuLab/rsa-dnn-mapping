@@ -51,14 +51,14 @@ userOptions.flush_Queue = true;
 % i.e. when run_in_parallel_in_cluster = true;
 userOptions.wallTime = '24:00:00';
 % Cluster machines requested.
-userOptions.nodesReq = 8;
+userOptions.nodesReq = 16;
 % Processors requested per processor machine.
 userOptions.proPNode = 1;
 % The product of nodesReq and proPNode should be greater or equal to the
 % number of workers requested.
-userOptions.nWorkers = 8;
+userOptions.nWorkers = 16;
 % In gigabytes, to be distributed amongst all nodes.
-userOptions.memReq = 720;
+userOptions.memReq = 1440;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Modality-agnostic analysis options %%
@@ -134,10 +134,10 @@ userOptions.temporalSearchlightWidth = 25;
 userOptions.temporalSearchlightTimestep = 10;
 
 % The overall window of interest for searchlight (ms)
-userOptions.temporalSearchlightLimits = [0, 400];
+userOptions.temporalSearchlightLimits = [0, 370];
 
 % TODO: THis should n't be needed, bu tit is.
-userOptions.maskTimeWindows = {[0,400], [0,400]};
+userOptions.maskTimeWindows = {[0,370], [0,370]};
 
 % Temporal downsampling
 % E.g., a value of 10 here means only taking each 10th point in time.
