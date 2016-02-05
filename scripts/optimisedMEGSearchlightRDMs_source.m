@@ -1,4 +1,4 @@
-function [RDMsPaths, slSTCMetadatas] = optimisedMEGSearchlightRDMs_source(meshPaths, slMasks, adjacencyMatrix, STCMetadatas, userOptions)
+function [RDMsPaths, slSTCMetadatas, slSpecs] = optimisedMEGSearchlightRDMs_source(meshPaths, slMasks, adjacencyMatrix, STCMetadatas, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -11,8 +11,6 @@ function [RDMsPaths, slSTCMetadatas] = optimisedMEGSearchlightRDMs_source(meshPa
     nSubjects = numel(userOptions.subjectNames);
 
     %% File paths
-
-    returnHere = pwd; % We'll come back here later
 
     RDMsDir = fullfile(userOptions.rootPath, 'RDMs');
 
@@ -59,6 +57,7 @@ function [RDMsPaths, slSTCMetadatas] = optimisedMEGSearchlightRDMs_source(meshPa
 
                 single_hemisphere_searchlight( ...
                     slSpecs.(chi), ...
+                    slMasks([slMasks.chi] == chi), ...
                     meshPaths(subject_i).(chi), ...
                     RDMsPaths(subject_i).(chi), ...
                     adjacencyMatrix, ...
@@ -71,8 +70,6 @@ function [RDMsPaths, slSTCMetadatas] = optimisedMEGSearchlightRDMs_source(meshPa
         end%for:chi
     end%for:subject
 
-    cd(returnHere); % And go back to where you started
-
 end%function
 
 %%%%%%%%%%%%%%%%%%
@@ -81,7 +78,7 @@ end%function
 
 % Computes and saves searchlight RDMs for a single hemisphere of a single
 % subject.
-function single_hemisphere_searchlight(slSpec, meshPath, RDMsPath, adjacencyMatrix, userOptions)
+function single_hemisphere_searchlight(slSpec, indexMask, meshPath, RDMsPath, adjacencyMatrix, userOptions)
 
     import rsa.*
     import rsa.meg.*

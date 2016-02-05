@@ -1,6 +1,6 @@
 function dRDM = dynamic_bn_models()
 
-    bn_activations = load('/Users/cai/Desktop/scratch/py_out/hidden_layer_7BN_activations');
+    bn_activations = load('/imaging/cw04/CSLB/Analysis_DNN/Models/hidden_layer_7BN_activations.mat');
     
     words = fieldnames(bn_activations);
     n_words = numel(words);

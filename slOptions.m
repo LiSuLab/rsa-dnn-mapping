@@ -8,7 +8,7 @@ function userOptions = slOptions()
 userOptions.analysisName = 'lexpro-bn-searchlight';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_lateral';
+userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_lateral_5121';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -51,14 +51,14 @@ userOptions.flush_Queue = true;
 % i.e. when run_in_parallel_in_cluster = true;
 userOptions.wallTime = '24:00:00';
 % Cluster machines requested.
-userOptions.nodesReq = 16;
+userOptions.nodesReq = 4;
 % Processors requested per processor machine.
 userOptions.proPNode = 1;
 % The product of nodesReq and proPNode should be greater or equal to the
 % number of workers requested.
-userOptions.nWorkers = 16;
+userOptions.nWorkers = 4;
 % In gigabytes, to be distributed amongst all nodes.
-userOptions.memReq = 1440;
+userOptions.memReq = 720;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Modality-agnostic analysis options %%
