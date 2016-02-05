@@ -74,7 +74,7 @@ rsa.util.prints( ...
     'Averaging searchlight RDMs...');
 %%%%%%%%
 
-averageRDMPaths = averageSlRDMs(RDMPaths, userOptions);
+averageRDMPaths = averageSlRDMs(RDMsPaths, slSpecs, slMasks, lexproBetaCorrespondence(), userOptions);
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%

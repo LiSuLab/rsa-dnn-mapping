@@ -52,6 +52,7 @@ function [RDMsPaths, slSTCMetadatas, slSpecs] = optimisedMEGSearchlightRDMs_sour
             % unless we're being told to overwrite.
             if exist(RDMsPaths(subject_i).(chi), 'file') && ~overwriteFlag
                 prints('Searchlight already performed in %sh hemisphere of subject %d. Skipping.', lower(chi), subject_i);
+                
             else
                 prints('Shining RSA searchlight in the %sh source mesh of subject %d of %d (%s)...', lower(chi), subject_i, nSubjects, thisSubjectName);
 

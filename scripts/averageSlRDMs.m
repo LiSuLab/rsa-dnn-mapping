@@ -1,6 +1,7 @@
-function [ averageRDMPaths ] = averageSlRDMs( RDMPaths, userOptions )
+function [ averageRDMPaths ] = averageSlRDMs( RDMPaths, slSpecs, slMasks, betaCorrs, userOptions )
 
-import rsa.util.*
+    import rsa.*
+    import rsa.util.*
     
     % Paths
     file_i = 1;
@@ -19,21 +20,24 @@ import rsa.util.*
 
         nSubjects = numel(userOptions.subjectNames);
         for chi = 'LR'
+            
+            % We need these sizes to preallocate the matrices before
+            % pushing off to the parfor.
+            thisMask = slMasks([slMasks.chi] == chi);
+            nVertices = numel(thisMask.vertices);
+            nTimepoints = size(slSpecs.(chi).windowPositions, 1);
+            nConditions = size(betaCorrs, 2);
+            nEntries = numel(squareform(zeros(nConditions)));
+            
+            average_slRDMs = nan(nVertices, nTimepoints, nEntries);
+            nan_counts = zeros(nVertices, nTimepoints, nEntries);
 
-            for subject_i = 1:nSubjects
+            parfor subject_i = 1:nSubjects
 
                 this_subject_name = userOptions.subjectNames{subject_i};
 
                 prints('Loading searchlight RDMs for subject %s (%d/%d) %sh...', this_subject_name, subject_i, nSubjects, lower(chi));
                 this_subject_slRDMs = directLoad(RDMPaths(subject_i).(chi), 'searchlightRDMs');
-
-                % For the first subject, we initialise the average and the
-                % nan-counter with some sizes.
-                if subject_i == 1
-                    [nVertices, nTimepoints, nEntries] = size(this_subject_slRDMs);
-                    average_slRDMs = nan(nVertices, nTimepoints, nEntries);
-                    nan_counts = zeros(1:nVertices, 1:nTimepoints, nEntries);
-                end
 
                 prints('Adding RDMs at all vertices and timepoints...');
                 

@@ -1,4 +1,4 @@
-function betas = betaCorrespondence()
+function betas = lexproBetaCorrespondence()
 %
 %  betaCorrespondence.m is a simple function which should combine
 %  three things: preBeta:	a string which is at the start of each file
