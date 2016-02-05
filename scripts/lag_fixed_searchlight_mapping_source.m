@@ -27,8 +27,6 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDM
 
         [slSpecs, slSTCMetadatas] = getSearchlightSpec(STCMetadatas, userOptions);
 
-        searchlightRDMs = directLoad(RDMPath, 'searchlightRDMs');
-
         modelRDM_utv = squeeze(unwrapRDMs(vectorizeRDMs(modelRDM)));
         
         n_mask_vertices = numel(indexMask.vertices);
@@ -54,6 +52,8 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(subjectName, chi, RDM
                 % This counts the windows (1-indexed) as they are
                 % considered.
                 window_i = window_i + 1;
+
+                searchlightRDMs = directLoad(RDMPath(window_i, 'searchlightRDMs');
 
                 % Get this RDM by vertex and window indices, as that's how 
                 % it was stored.

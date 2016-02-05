@@ -1,14 +1,19 @@
-function [ averageRDMPaths ] = averageSlRDMs( RDMPaths, slSpecs, slMasks, betaCorrs, userOptions )
+function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, userOptions )
 
     import rsa.*
     import rsa.util.*
+    import rsa.par.*
+    
+    [nSubjects, nTimepoints] = size(RDMsPaths);
     
     % Paths
     file_i = 1;
     for chi = 'LR'
-        averageRDMPaths.(chi) = fullfile(userOptions.rootPath, 'RDMs', ['average_', lower(chi), 'h.mat']);
-        promptOptions.checkFiles(file_i).address = averageRDMPaths.(chi);
-        file_i = file_i + 1;
+        for t = 1:nTimepoints
+            averageRDMPaths(t).(chi) = fullfile(userOptions.rootPath, 'RDMs', ['average_t', t, '-' lower(chi), 'h.mat']);
+            promptOptions.checkFiles(file_i).address = averageRDMPaths(t).(chi);
+            file_i = file_i + 1;
+        end
     end
     
     promptOptions.functionCaller = 'averageSearchlightRDMs';
@@ -25,41 +30,45 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMPaths, slSpecs, slMasks, betaCo
             % pushing off to the parfor.
             thisMask = slMasks([slMasks.chi] == chi);
             nVertices = numel(thisMask.vertices);
-            nTimepoints = size(slSpecs.(chi).windowPositions, 1);
             nConditions = size(betaCorrs, 2);
             nEntries = numel(squareform(zeros(nConditions)));
-            
-            average_slRDMs = nan(nVertices, nTimepoints, nEntries);
-            nan_counts = zeros(nVertices, nTimepoints, nEntries);
-
-            parfor subject_i = 1:nSubjects
-
-                this_subject_name = userOptions.subjectNames{subject_i};
-
-                prints('Loading searchlight RDMs for subject %s (%d/%d) %sh...', this_subject_name, subject_i, nSubjects, lower(chi));
-                this_subject_slRDMs = directLoad(RDMPaths(subject_i).(chi), 'searchlightRDMs');
-
-                prints('Adding RDMs at all vertices and timepoints...');
                 
-                % zero-out nans
-                nan_locations = isnan(this_subject_slRDMs);
-                this_subject_slRDMs(nan_locations) = 0;
-                % remember where the nans were
-                nan_counts = nan_counts + nan_locations;
-                % add to the average
-                average_slRDMs = average_slRDMs + this_subject_slRDMs;
+            parfor t = 1:nTimepoints
+                
+                prints('Working on timepoint %d of %d...', t, nTimepoints);
+            
+                average_slRDMs = nan(nVertices, nEntries);
+                nan_counts = zeros(nVertices, nEntries);
 
-            end%for:subject
+                for subject_i = 1:nSubjects
+    
+                    this_subject_name = userOptions.subjectNames{subject_i};
 
-            prints('Averaging RDMs at all vertices...');
+                    prints('\tLoading searchlight RDMs for subject %s (%d/%d) %sh...', this_subject_name, subject_i, nSubjects, lower(chi));
+                    this_subject_slRDMs = directLoad(RDMsPaths(subject_i, t).(chi), 'searchlightRDMs');
 
-            % replace nan counts by non-nan counts
-            non_nan_counts = nSubjects - nan_counts;
-            average_slRDMs = average_slRDMs ./ non_nan_counts;
+                    prints('\tAdding RDMs at all vertices and timepoints...');
 
-            prints('Saving average searchlight RDMs to "%s"...', averageRDMPaths.(chi));
-            save('-v7.3', averageRDMPaths.(chi), 'average_slRDMs');
+                    % zero-out nans
+                    nan_locations = isnan(this_subject_slRDMs);
+                    this_subject_slRDMs(nan_locations) = 0;
+                    % remember where the nans were
+                    nan_counts = nan_counts + nan_locations;
+                    % add to the average
+                    average_slRDMs = average_slRDMs + this_subject_slRDMs;
+                
+                end%for:subject
 
+                prints('\tAveraging RDMs at all vertices...');
+
+                % replace nan counts by non-nan counts
+                non_nan_counts = nSubjects - nan_counts;
+                average_slRDMs = average_slRDMs ./ non_nan_counts; %#ok<NASGU> it's saved
+
+                prints('\tSaving average searchlight RDMs for t=%d/%d to "%s"...', t, nTimepoints, averageRDMPaths(t).(chi));
+                parsave('-v7.3', averageRDMPaths(t).(chi), 'average_slRDMs');
+                
+            end%for:t
         end%for:chi
 
     else
