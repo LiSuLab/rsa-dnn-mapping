@@ -1,4 +1,4 @@
-function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, slMask, modelRDM, model_lag_ms, STCMetadatas, userOptions)
+function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, name_prefix, slMask, modelRDM, model_lag_ms, STCMetadatas, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -8,8 +8,8 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
     %% File paths
 
     mapsDir = fullfile(userOptions.rootPath, 'Maps');
-    mapsFileName = sprintf('%s_rMesh_lagfix_%dms-%sh.stc', ...
-        userOptions.analysisName, ...
+    mapsFileName = sprintf('%s_lagfix_%dms-%sh.stc', ...
+        name_prefix, ...
         model_lag_ms, ...
         lower(chi));
     mapsPath = fullfile(mapsDir, mapsFileName);
@@ -83,8 +83,8 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         % r_mesh contains only the data inside the mask, but since the
         % vertices are stored in this struct, that should be ok.
         rSTCStruct.data     = r_mesh(:,:);
-        % Correct for lag.
-        rSTCStruct.tmin     = rSTCStruct.tmin - model_lag_ms;
+        % Correct for lag (converting ms to seconds).
+        rSTCStruct.tmin     = rSTCStruct.tmin - (model_lag_ms / 1000);
 
         %% Saving r-maps and RDM maps
 
