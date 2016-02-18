@@ -10,7 +10,10 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, use
     file_i = 1;
     for chi = 'LR'
         for t = 1:nTimepoints
-            averageRDMPaths(t).(chi) = fullfile(userOptions.rootPath, 'RDMs', ['average_t', t, '-' lower(chi), 'h.mat']);
+            averageRDMPaths(t).(chi) = fullfile( ...
+                userOptions.rootPath, ...
+                'RDMs', ...
+                sprintf('average_t%d-%sh.mat', t, lower(chi)));
             promptOptions.checkFiles(file_i).address = averageRDMPaths(t).(chi);
             file_i = file_i + 1;
         end
@@ -37,7 +40,7 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, use
                 
                 prints('Working on timepoint %d of %d...', t, nTimepoints);
             
-                average_slRDMs = nan(nVertices, nEntries);
+                average_slRDMs = zeros(nVertices, nEntries);
                 nan_counts = zeros(nVertices, nEntries);
 
                 for subject_i = 1:nSubjects
@@ -45,7 +48,7 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, use
                     this_subject_name = userOptions.subjectNames{subject_i};
 
                     prints('\tLoading searchlight RDMs for subject %s (%d/%d) %sh...', this_subject_name, subject_i, nSubjects, lower(chi));
-                    this_subject_slRDMs = directLoad(RDMsPaths(subject_i, t).(chi), 'searchlightRDMs');
+                    this_subject_slRDMs = directLoad(RDMsPaths(subject_i, t).(chi));
 
                     prints('\tAdding RDMs at all vertices and timepoints...');
 
@@ -63,10 +66,10 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, use
 
                 % replace nan counts by non-nan counts
                 non_nan_counts = nSubjects - nan_counts;
-                average_slRDMs = average_slRDMs ./ non_nan_counts; %#ok<NASGU> it's saved
+                average_slRDMs = average_slRDMs ./ non_nan_counts;
 
                 prints('\tSaving average searchlight RDMs for t=%d/%d to "%s"...', t, nTimepoints, averageRDMPaths(t).(chi));
-                parsave('-v7.3', averageRDMPaths(t).(chi), 'average_slRDMs');
+                parsave(averageRDMPaths(t).(chi), average_slRDMs);
                 
             end%for:t
         end%for:chi

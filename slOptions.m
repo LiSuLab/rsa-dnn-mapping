@@ -51,12 +51,12 @@ userOptions.flush_Queue = true;
 % i.e. when run_in_parallel_in_cluster = true;
 userOptions.wallTime = '24:00:00';
 % Cluster machines requested.
-userOptions.nodesReq = 4;
+userOptions.nodesReq = 8;
 % Processors requested per processor machine.
 userOptions.proPNode = 1;
 % The product of nodesReq and proPNode should be greater or equal to the
 % number of workers requested.
-userOptions.nWorkers = 4;
+userOptions.nWorkers = 8;
 % In gigabytes, to be distributed amongst all nodes.
 userOptions.memReq = 720;
 
@@ -97,7 +97,8 @@ userOptions.searchlightPatterns = 'spatiotemporal';
 
 % The list of subjects to be included in the study.
 userOptions.subjectNames = { ...
-    'meg08_0320', ...      
+    ...'meg08_0319', ... % andy excluded this from preprocessing for noise
+    'meg08_0320', ... 
     'meg08_0323', ...
     'meg08_0324', ...	
     'meg08_0327', ...

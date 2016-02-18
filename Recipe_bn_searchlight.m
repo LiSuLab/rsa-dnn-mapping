@@ -5,8 +5,8 @@ userOptions = slOptions();
 rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-dRDM = dynamic_bn_models();
-n_lags = numel(dRDM);
+dynamic_model_RDM = dynamic_bn_models();
+n_lags = numel(dynamic_model_RDM);
 
 MODEL_TIMESTEP_ms = 10;
 
@@ -85,36 +85,42 @@ averageRDMPaths = averageSlRDMs( ...
 rsa.util.prints( ...
    'Searchlight Brain Model comparison...');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-for subject_i = 1:nSubjects
    
-   % Work on each hemisphere separately
-   for chi = 'LR'
-       
-       rsa.util.prints();
-       rsa.util.prints('Subject %d/%d (%sh)...', subject_i, n_subjects, chi);
-       
-       parfor lag_i = 1:n_lags
-           
-           this_lag_ms = (lag_i - 1) * MODEL_TIMESTEP_ms;
-       
-           rsa.util.prints('\tLag %d/%d...', lag_i, n_lags);
+% Work on each hemisphere separately
+for chi = 'LR'
 
-           % TODO: fix the use of sl metadatas and sl specs here
-           [mapPaths(subject_i, lag_i).(chi)] = lag_fixed_searchlight_mapping_source( ...
-               userOptions.subjectNames{subject_i}, ...
-               chi, ...
-               RDMPaths(subject_i, :).(chi), ...
-               ...% Use the mask for this hemisphere only
-               slMasks([slMasks.chi] == chi), ...
-               dRDM(lag_i), this_lag_ms, ...
-               STCMetadatas.(chi), ...
-               userOptions ...
-           );
-   
-       end
+   rsa.util.prints();
+   rsa.util.prints('Subject %d/%d (%sh)...', subject_i, nSubjects, lower(chi));
+
+   parfor lag_i = 1:n_lags
+
+       this_lag_ms = (lag_i - 1) * MODEL_TIMESTEP_ms;
+
+       rsa.util.prints('\tLag %d/%d...', lag_i, n_lags);
+
+       % TODO: fix the use of sl metadatas and sl specs here
+       [mapPaths(lag_i).(chi)] = lag_fixed_searchlight_mapping_source( ...
+           chi, ...
+           ...% can't deref .(chi) here as it auto-expands the argument
+           averageRDMPaths, ...
+           ...% Use the mask for this hemisphere only
+           slMasks([slMasks.chi] == chi), ...
+           dynamic_model_RDM(lag_i), this_lag_ms, ...
+           ...% Apparently we don't deref .(chi) here either
+           STCMetadatas, ...
+           userOptions);
+
    end
 end
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%
+rsa.util.prints(...
+    'Averaging STC files...');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   
+averageMapPaths.(chi) = average_stc_files(...
+   mapPaths, ...
+   userOptions);
 
 
 %% Send an email
