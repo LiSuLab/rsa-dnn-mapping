@@ -1,7 +1,7 @@
 % Assumes that fiels are in increasing order of lags.
 %
 % Cai Wingfield 2016-02
-function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptions)
+function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, userOptions)
 
     import rsa.*
     import rsa.meg.*
