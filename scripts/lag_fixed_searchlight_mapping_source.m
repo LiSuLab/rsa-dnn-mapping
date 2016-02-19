@@ -40,19 +40,10 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         r_mesh = zeros(n_mask_vertices, nWindowPositions);
 
         % Search through time
-        window_i = 0;
-        for window = slSpecs.(chi).windowPositions'
-                
-            % This counts the windows (1-indexed) as they are
-            % considered.
-            window_i = window_i + 1;
-            
-            prints('Window %d', window_i);
+        for window_i = 1:nWindowPositions
+            prints('Window %d/%d (%d percent):', window_i, nWindowPositions, floor((window_i*100) / nWindowPositions));
 
             searchlightRDMs = directLoad(data_RDM_paths(window_i).(chi));
-
-            % For display purposes
-            nVertsSearched = 0;
 
             % Search the vertices
             for v_i = 1:n_mask_vertices
@@ -61,19 +52,19 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
                 % it was stored.
                 patchRDM = squeeze(searchlightRDMs(v_i, :));
 
-                rs = corr(patchRDM', modelRDM_utv', 'type', userOptions.RDMCorrelationType, 'rows', 'pairwise');
-
                 % Store results to be retured.
-                r_mesh(v_i, window_i) = rs;
+                r_mesh(v_i, window_i) = corr( ...
+                    patchRDM', ...
+                    modelRDM_utv', ...
+                    'type', userOptions.RDMCorrelationType, ...
+                    'rows', 'pairwise');
 
                 % Indicate progress every once in a while...
-                nVertsSearched = nVertsSearched + 1;
-                if mod(nVertsSearched, 200) == 0
-                    prints('%d vertices searched, %d percent complete', nVertsSearched, floor((nVertsSearched / numel(slMask.vertices)) * 100));
+                if mod(v_i, floor(n_mask_vertices / 10)) == 0
+                    prints('\t%d vertices searched.', v_i);
                 end%if
 
             end%for:v_i
-
         end%for:window
 
         % Wrap in a metadata struct
@@ -83,8 +74,10 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         % r_mesh contains only the data inside the mask, but since the
         % vertices are stored in this struct, that should be ok.
         rSTCStruct.data     = r_mesh(:,:);
-        % Correct for lag (converting ms to seconds).
+        % Correct lag
         rSTCStruct.tmin     = rSTCStruct.tmin - (model_lag_ms / 1000);
+        rSTCStruct.tmax     = rSTCStruct.tmax - (model_lag_ms / 1000);
+        
 
         %% Saving r-maps and RDM maps
 
