@@ -134,6 +134,11 @@ for subject_i = 1:n_subjects
 
 end
 
+average_stc_files( ...
+    averageMapPaths, ...
+    sprintf('%s_subave_lagfixes', userOptions.analysisName), ...
+    userOptions);
+
 
 %% Send an email
 
