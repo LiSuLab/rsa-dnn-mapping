@@ -1,3 +1,6 @@
+% Assumes that fiels are in increasing order of lags.
+%
+% Cai Wingfield 2016-02
 function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptions)
 
     import rsa.*
@@ -6,34 +9,62 @@ function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptio
     
     mapsDir = fullfile(userOptions.rootPath, 'Maps');
     
-    n_maps = numel(map_paths);
+    n_lags = numel(map_paths);
     
     for chi = 'LR'
         
-        for file_i = 1:n_maps
+        for lag_i = 1:n_lags
             
-            prints('Reading stc file %s...', map_paths(file_i).(chi));
+            prints('Reading stc file %s...', map_paths(lag_i).(chi));
             
-            stc_struct = mne_read_stc_file1(map_paths(file_i).(chi));
+            stc_struct = mne_read_stc_file1(map_paths(lag_i).(chi));
             
-            if file_i == 1
+            this_tmin = stc_struct.tmin;
+            this_tmax = stc_struct.tmax;
+            
+            if lag_i == 1
                 sum_data = stc_struct.data;
+        
+                sum_data_tmin = stc_struct.tmin;
+                sum_data_tmax = stc_struct.tmax;
+                % This should always be the same
+                tstep = stc_struct.tstep;
             else
-                sum_data = sum_data + stc_struct.data;
+                
+                % WE ARE ASSUMING THAT EACH INCOMING FILE IS EXACTLY tstep
+                % BEHIND THE PREVIOUS.
+                
+                % We need to truncate the beginning of this data
+                tdiff = sum_data_tmin - this_tmin;
+                % debug
+                assert(tdiff == tstep);
+                
+                % Trim the first frame of this data
+                this_data = stc_struct.data(2:end, :);
+                
+                % Trim the last frame of the data pool
+                sum_data = sum_data(1:end-1, :);
+                sum_data_tmax = this_tmax;
+                
+                sum_data = sum_data + this_data;
             end
             
         end%for:file_i
         
-        average_data = sum_data / n_maps;
+        % Mean the remaining data
+        average_data = sum_data / n_lags;
         
-        % Reuse an stc struct with all the right metadata in it already.
+        % Reuse an stc struct with all the right vertices and tstep in it already.
         stc_struct.data = average_data;
         
+        % Correct the the limits
+        stc_struct.tmin = sum_data_tmin;
+        stc_struct.tmax = sum_data_tmax;
+        
+        % Write it out
         average_stc_paths.(chi) = fullfile( ...
             mapsDir, ...
-            sprintf('%s-%sh.stc', ...
-                name_prefix, ...
-                lower(chi)));
+            sprintf('%s-%sh.stc', name_prefix, lower(chi)));
         
         prints('Writing averaged data file to %s...', average_stc_paths.(chi));
         
