@@ -89,7 +89,7 @@ rsa.util.prints( ...
 % Work on each hemisphere separately
 for chi = 'LR'
 
-   parfor lag_i = 1:n_lags
+   for lag_i = 1:n_lags
 
        this_lag_ms = (lag_i - 1) * MODEL_TIMESTEP_ms;
 

@@ -40,8 +40,8 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         r_mesh = zeros(n_mask_vertices, nWindowPositions);
 
         % Search through time
-        for window_i = 1:nWindowPositions
-            prints('Window %d/%d (%d percent):', window_i, nWindowPositions, floor((window_i*100) / nWindowPositions));
+        parfor window_i = 1:nWindowPositions
+            prints('\tWindow %d/%d:', window_i, nWindowPositions);
 
             searchlightRDMs = directLoad(data_RDM_paths(window_i).(chi));
 
@@ -59,15 +59,11 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
                     'type', userOptions.RDMCorrelationType, ...
                     'rows', 'pairwise');
 
-                % Indicate progress every once in a while...
-                if mod(v_i, floor(n_mask_vertices / 10)) == 0
-                    prints('\t%d vertices searched.', v_i);
-                end%if
-
             end%for:v_i
         end%for:window
 
-        % Wrap in a metadata struct
+        
+        %% Wrap in a metadata struct
         
         rSTCStruct          = slSTCMetadatas.(chi);
         rSTCStruct.vertices = slMask.vertices;
@@ -82,7 +78,6 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         %% Saving r-maps and RDM maps
 
         prints('Writing r-map %s.', mapsPath);
-        gotoDir(mapsDir);
         mne_write_stc_file1(mapsPath, rSTCStruct);
         
     else
