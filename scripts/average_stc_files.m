@@ -19,47 +19,36 @@ function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptio
             
             stc_struct = mne_read_stc_file1(map_paths(lag_i).(chi));
             
-            this_tmin = stc_struct.tmin;
-            this_tmax = stc_struct.tmax;
-            
             if lag_i == 1
                 sum_data = stc_struct.data;
-        
-                sum_data_tmin = stc_struct.tmin;
-                sum_data_tmax = stc_struct.tmax;
-                % This should always be the same
-                tstep = stc_struct.tstep;
+                reusable_stc_struct = stc_struct;
+                
+                % To record the number of model rs that have contributed to
+                % this datapoint, for the purposes of correctly averaging
+                % later.
+                % ones() because we've got at least one datapoint from this
+                % zero-lag model.
+                n_timepoints = size(sum_data, 2);
+                n_contributions = ones(1, n_timepoints);
             else
-                
-                % WE ARE ASSUMING THAT EACH INCOMING FILE IS EXACTLY tstep
-                % BEHIND THE PREVIOUS.
-                
-                % We need to truncate the beginning of this data
-                tdiff = sum_data_tmin - this_tmin;
-                % debug
-                assert(tdiff == tstep);
                 
                 % Trim the first frame of this data
                 this_data = stc_struct.data(2:end, :);
                 
-                % Trim the last frame of the data pool
-                sum_data = sum_data(1:end-1, :);
-                sum_data_tmax = this_tmax;
+                % Record this contribution
+                width_this_data = size(this_data, 1);
+                n_contributions(1:width_this_data) = n_contributions(1:width_this_data) + 1;
                 
                 sum_data = sum_data + this_data;
             end
             
         end%for:file_i
         
-        % Mean the remaining data
-        average_data = sum_data / n_lags;
+        % Mean the remaining data, appropriate
+        average_data = sum_data ./ repmat(n_contributions, n_verts, 1);
         
         % Reuse an stc struct with all the right vertices and tstep in it already.
-        stc_struct.data = average_data;
-        
-        % Correct the the limits
-        stc_struct.tmin = sum_data_tmin;
-        stc_struct.tmax = sum_data_tmax;
+        reusable_stc_struct.data = average_data;
         
         % Write it out
         average_stc_paths.(chi) = fullfile( ...
@@ -68,7 +57,7 @@ function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptio
         
         prints('Writing averaged data file to %s...', average_stc_paths.(chi));
         
-        mne_write_stc_file1(average_stc_paths.(chi), stc_struct);
+        mne_write_stc_file1(average_stc_paths.(chi), reusable_stc_struct);
         
     end%for:chi
 
