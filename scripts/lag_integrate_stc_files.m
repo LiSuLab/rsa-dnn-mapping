@@ -1,7 +1,7 @@
 % Assumes that fiels are in increasing order of lags.
 %
 % Cai Wingfield 2016-02
-function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, userOptions)
+function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, userOptions, truncate)
 
     import rsa.*
     import rsa.meg.*
@@ -10,6 +10,8 @@ function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, use
     mapsDir = fullfile(userOptions.rootPath, 'Maps');
     
     n_lags = numel(map_paths);
+    
+    if ~exist('truncate', 'var'), truncate = false; end
     
     for chi = 'LR'
         
@@ -42,10 +44,16 @@ function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, use
                 sum_data(:, 1:trimmed_epoch_length) = sum_data(:, 1:trimmed_epoch_length) + this_data;
             end
             
-        end%for:file_i
+        end%for:lag_i
         
         % Mean the remaining data, appropriate
         average_data = sum_data ./ repmat(contribution_counts, n_verts, 1);
+        
+        % Truncate those parts of the data after which there is sub-optimal
+        % SNR
+        if truncate
+            average_data = average_data(:, contribution_counts == n_lags);
+        end
         
         % Reuse an stc struct with all the right vertices and tstep in it already.
         reusable_stc_struct.data = average_data;
