@@ -14,7 +14,7 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         lower(chi));
     mapsPath = fullfile(mapsDir, mapsFileName);
 
-    promptOptions.functionCaller = 'searchlightMapping_source';
+    promptOptions.functionCaller = 'lag_fixed_searchlight_mapping_source';
     promptOptions.defaultResponse = 'S';
     promptOptions.checkFiles(1).address = mapsPath;
 
@@ -41,20 +41,18 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
 
         % Search through time
         parfor window_i = 1:nWindowPositions
-            prints('\tWindow %d/%d:', window_i, nWindowPositions);
+            prints('\tWindow %d/%d', window_i, nWindowPositions);
 
             searchlightRDMs = directLoad(data_RDM_paths(window_i).(chi));
 
             % Search the vertices
             for v_i = 1:n_mask_vertices
 
-                % Get this RDM by vertex and window indices, as that's how 
-                % it was stored.
-                patchRDM = squeeze(searchlightRDMs(v_i, :));
-
                 % Store results to be retured.
                 r_mesh(v_i, window_i) = corr( ...
-                    patchRDM', ...
+                    ...% Get this RDM by vertex and window indices, as 
+                    ...% that's how it was stored.
+                    searchlightRDMs(v_i, :)', ...
                     modelRDM_utv', ...
                     'type', userOptions.RDMCorrelationType, ...
                     'rows', 'pairwise');

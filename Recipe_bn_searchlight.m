@@ -95,17 +95,17 @@ for chi = 'LR'
         
         subjectName = userOptions.subjectNames{subject_i};
 
-        parfor lag_i = 1:n_lags
+        for lag_i = 1:n_lags
 
            this_lag_ms = (lag_i - 1) * MODEL_TIMESTEP_ms;
 
-           rsa.util.prints('%sH: Lag %d/%d...', chi, lag_i, n_lags);
+           rsa.util.prints('%sH: Subj %d/%d. Lag %d/%d...', chi, subject_i, n_subjects, lag_i, n_lags);
 
            % TODO: fix the use of sl metadatas and sl specs here
            [mapPaths(subject_i, lag_i).(chi)] = lag_fixed_searchlight_mapping_source( ...
                chi, ...
                ...% can't deref .(chi) here as it auto-expands the argument
-               RDMPaths(subject_i, :), ...
+               RDMsPaths(subject_i, :), ...
                sprintf('%s_subj_%s', userOptions.analysisName, subjectName), ...
                ...% Use the mask for this hemisphere only
                slMasks([slMasks.chi] == chi), ...
