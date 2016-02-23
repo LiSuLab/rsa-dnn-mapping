@@ -5,10 +5,10 @@ function userOptions = slOptions()
 %%%%%%%%%%%%%%%%%%%%%
 
 % This name identifies a collection of files which all belong to the same run of a project.
-userOptions.analysisName = 'lexpro-bn-searchlight';
+userOptions.analysisName = 'lexpro-bn-sl';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_lateral_5121';
+userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_lateral_5121_extended_epoch';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -135,10 +135,10 @@ userOptions.temporalSearchlightWidth = 25;
 userOptions.temporalSearchlightTimestep = 10;
 
 % The overall window of interest for searchlight (ms)
-userOptions.temporalSearchlightLimits = [0, 370];
+userOptions.temporalSearchlightLimits = [0, 540];
 
-% TODO: THis should n't be needed, bu tit is.
-userOptions.maskTimeWindows = {[0,370], [0,370]};
+% TODO: THis shouldn't be needed, but it is, for now.
+userOptions.maskTimeWindows = {[0,540], [0,540]};
 
 % Temporal downsampling
 % E.g., a value of 10 here means only taking each 10th point in time.
