@@ -135,10 +135,15 @@ for subject_i = 1:n_subjects
 
 end
 
+n_perms = 1000;
+
+for perm_i = 0:n_perms-1
 average_stc_files( ...
     averageMapPaths, ...
-    sprintf('%s_subave_lagfixes', userOptions.analysisName), ...
+    sprintf('%s_subave_lagfixes_perm%03d', userOptions.analysisName, perm_i), ...
+    true, ...
     userOptions);
+end
 
 
 %% Send an email

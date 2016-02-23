@@ -1,7 +1,8 @@
-function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptions)
+function average_stc_paths = average_stc_files(map_paths, name_prefix, with_rfx_perm, userOptions)
 
     import rsa.*
     import rsa.meg.*
+    import rsa.stat.*
     import rsa.util.*
     
     mapsDir = fullfile(userOptions.rootPath, 'Maps');
@@ -16,10 +17,23 @@ function average_stc_paths = average_stc_files(map_paths, name_prefix, userOptio
             
             stc_struct = mne_read_stc_file1(map_paths(file_i).(chi));
             
+            % Add this file.
+            % If we're doing an RFX permutation, we randomly flip the sign
+            % of the data before adding it.
             if file_i == 1
-                sum_data = stc_struct.data;
+                % For the first file, there's nothing to add it to yet, so
+                % we copy it.
+                if with_rfx_perm && coinToss()
+                    sum_data = (-1) * stc_struct.data;
+                else
+                    sum_data = stc_struct.data;
+                end
             else
-                sum_data = sum_data + stc_struct.data;
+                if with_rfx_perm && coinToss()
+                    sum_data = sum_data + ((-1) * stc_struct.data);
+                else
+                    sum_data = sum_data + stc_struct.data;
+                end
             end
             
         end%for:file_i
