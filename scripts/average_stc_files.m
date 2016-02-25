@@ -13,7 +13,7 @@ function average_stc_paths = average_stc_files(map_paths, name_prefix, with_rfx_
         
         for file_i = 1:n_files
             
-            prints('Reading stc file %s...', map_paths(file_i).(chi));
+            if ~with_rfx_perm, prints('Reading stc file %s...', map_paths(file_i).(chi)); end
             
             stc_struct = mne_read_stc_file1(map_paths(file_i).(chi));
             

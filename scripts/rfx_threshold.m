@@ -2,6 +2,7 @@ function threshold = rfx_threshold(rfx_paths, confidence_level)
 
     import rsa.*
     import rsa.meg.*
+    import rsa.util.*
     
     % convert a 0.05 into a 0.95;
     quantile_level = 1 - confidence_level;
