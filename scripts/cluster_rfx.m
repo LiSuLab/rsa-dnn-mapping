@@ -92,8 +92,8 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
     null_t_dists.B = sort(max_t_values_B);
 
     corrected_thresholds.L = quantile(null_t_dists.L, confidence_level);
-    corrected_thresholds.R = quantile(null_t_dists.L, confidence_level);
-    corrected_thresholds.B = quantile(null_t_dists.L, confidence_level);
+    corrected_thresholds.R = quantile(null_t_dists.R, confidence_level);
+    corrected_thresholds.B = quantile(null_t_dists.B, confidence_level);
 
 end%function
 
