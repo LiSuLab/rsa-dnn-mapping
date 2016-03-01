@@ -79,8 +79,8 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
         
         group_tmap_sim = squeeze(flipped_stats.tstat);
 
-        group_tmap_sim_l = group_tmap_sim(      1:v_l, :);
-        group_tmap_sim_r = group_tmap_sim(v_l + 1:end, :);
+        group_tmap_sim_l = group_tmap_sim(1:n_verts.L,       :);
+        group_tmap_sim_r = group_tmap_sim(  n_verts.L+1:end, :);
 
         max_t_values_L(flip_i) = max(group_tmap_sim_l(:));
         max_t_values_R(flip_i) = max(group_tmap_sim_r(:));
