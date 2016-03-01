@@ -18,11 +18,9 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
     confidence_level = 1 - p_threshold;
     
     % Load the first dataset to look at size of data
-    n_verts = 0;
     for chi = 'LR'
         hemi_mesh_stc.(chi) = mne_read_stc_file1(map_paths(1).(chi));
         [n_verts.(chi), n_timepoints] = size(hemi_mesh_stc.(chi).data);
-        n_verts = n_verts + v_this_hemi;
     end
     n_verts_overall = n_verts.L + n_verts.L;
     
