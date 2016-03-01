@@ -22,7 +22,7 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
         hemi_mesh_stc.(chi) = mne_read_stc_file1(map_paths(1).(chi));
         [n_verts.(chi), n_timepoints] = size(hemi_mesh_stc.(chi).data);
     end
-    n_verts_overall = n_verts.L + n_verts.L;
+    n_verts_overall = n_verts.L + n_verts.R;
     
     % Preallocate
     all_subject_rhos = nan(n_subjects, n_verts_overall, n_timepoints);
