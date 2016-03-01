@@ -69,7 +69,7 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
         % Flip a coin for each subject
         flips = coinToss([n_subjects, 1, 1]);
         % Copy this to make it the same size as the data
-        flips = repmat(flips, [1, n_verts, n_timepoints]);
+        flips = repmat(flips, [1, n_verts_overall, n_timepoints]);
         
         % Apply the flips to the subject data.
         flipped_rhos = all_subject_rhos .* flips;
