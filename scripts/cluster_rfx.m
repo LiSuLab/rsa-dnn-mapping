@@ -30,10 +30,10 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
     for subject_i = 1:n_subjects
         % Left
         hemi_mesh_stc.L = mne_read_stc_file1(map_paths(subject_i).L);
-        all_subject_rhos(subject_i, 1:n_verts.L,       :) = hemi_mesh_stc.data;
+        all_subject_rhos(subject_i, 1:n_verts.L,       :) = hemi_mesh_stc.L.data;
         % Right
         hemi_mesh_stc.R = mne_read_stc_file1(map_paths(subject_i).R);
-        all_subject_rhos(subject_i,   n_verts.L+1:end, :) = hemi_mesh_stc.data;
+        all_subject_rhos(subject_i,   n_verts.L+1:end, :) = hemi_mesh_stc.R.data;
     end
 
     [h,p,ci,stats] = ttest(all_subject_rhos);
