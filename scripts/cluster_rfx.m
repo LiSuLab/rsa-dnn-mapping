@@ -37,21 +37,21 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
     end
 
     [h,p,ci,stats] = ttest(all_subject_rhos);
-    group_tmap_observed = squeeze(stats.tstat);
+    group_tmap_observed_overall = squeeze(stats.tstat);
     
     % Set nan values to 0
     % TODO: why would there be nans?
-    group_tmap_observed(isnan(group_tmap_observed)) = 0;
+    group_tmap_observed_overall(isnan(group_tmap_observed_overall)) = 0;
     
     % Split into hemispheres
-    group_tmap_observed.L = group_tmap_observed(1:n_verts.L,       :);
-    group_tmap_observed.R = group_tmap_observed(  n_verts.L+1:end, :);
+    group_tmaps_observed.L = group_tmap_observed_overall(1:n_verts.L,       :);
+    group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
     
     % Write out unthresholded t-map
     for chi = 'LR'
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            group_tmap_observed.(chi), ...
+            group_tmaps_observed.(chi), ...
             fullfile(maps_dir, sprintf('%s_group_tmap_observed_%sh.stc', userOptions.analysisName, lower(chi))));
     end
     
