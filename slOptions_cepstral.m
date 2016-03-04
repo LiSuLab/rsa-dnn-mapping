@@ -1,4 +1,4 @@
-function userOptions = slOptions()
+function userOptions = slOptions_cepstral()
 
 %%%%%%%%%%%%%%%%%%%%%
 %% Project details %%
@@ -58,7 +58,7 @@ userOptions.proPNode = 1;
 % number of workers requested.
 userOptions.nWorkers = 16;
 % In gigabytes, to be distributed amongst all nodes.
-userOptions.memReq = 1440;
+userOptions.memReq = 160;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Modality-agnostic analysis options %%
