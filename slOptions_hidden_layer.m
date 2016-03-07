@@ -1,4 +1,4 @@
-function userOptions = slOptions()
+function userOptions = slOptions_hidden_layer()
 
 %%%%%%%%%%%%%%%%%%%%%
 %% Project details %%

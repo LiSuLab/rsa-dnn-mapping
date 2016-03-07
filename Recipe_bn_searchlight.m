@@ -1,11 +1,11 @@
-userOptions = slOptions();
+userOptions = slOptions_hidden_layer();
 
 
 %% %%%%%%%%%%%%%%%%%%%
 rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-dynamic_model_RDM = dynamic_bn_models();
+dynamic_model_RDM = dynamic_bn_models('correlation');
 n_lags = numel(dynamic_model_RDM);
 
 MODEL_TIMESTEP_ms = 10;
