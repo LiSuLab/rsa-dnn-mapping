@@ -22,7 +22,6 @@ function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, use
             stc_struct = mne_read_stc_file1(map_paths(lag_i).(chi));
             
             if lag_i == 1
-                sum_data = stc_struct.data;
                 reusable_stc_struct = stc_struct;
                 
                 % To record the number of model rs that have contributed to
@@ -30,29 +29,32 @@ function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, use
                 % later.
                 % ones() because we've got at least one datapoint from this
                 % zero-lag model.
-                [n_verts, n_timepoints] = size(sum_data);
-                contribution_counts = ones(1, n_timepoints);
-            else
+                [n_verts, n_timepoints] = size(stc_struct.data);
                 
-                % Trim the first frame of this data
-                this_data = stc_struct.data(:, lag_i:end);
-                
-                % Record this contribution
-                trimmed_epoch_length = size(this_data, 2);
-                contribution_counts(1:trimmed_epoch_length) = contribution_counts(1:trimmed_epoch_length) + 1;
-                
-                sum_data(:, 1:trimmed_epoch_length) = sum_data(:, 1:trimmed_epoch_length) + this_data;
+                % Preallocate
+                aggregate_data = zeros(n_verts, n_timepoints, n_lags);
+                contribution_counts = zeros(1, n_timepoints);
             end
+            
+            trimmed_epoch_length = n_timepoints - lag_i + 1;
+            
+            aggregate_data(:, 1:trimmed_epoch_length, lag_i) = stc_struct.data(:, lag_i:end);
+            
+            contribution_counts(1:trimmed_epoch_length) = contribution_counts(1:trimmed_epoch_length) + 1;
             
         end%for:lag_i
         
         % Mean the remaining data, appropriate
-        average_data = sum_data ./ repmat(contribution_counts, n_verts, 1);
+        average_data = sum(aggregate_data, 3) ./ repmat(contribution_counts, n_verts, 1);
         
         % Truncate those parts of the data after which there is sub-optimal
         % SNR
         if truncate
-            average_data = average_data(:, contribution_counts == n_lags);
+            trimmed_epoch_length = n_timepoints - n_lags + 1;
+            average_data = average_data(:, 1:trimmed_epoch_length);
+        
+            % Adjust the timing which will have changed on a truncation
+            reusable_stc_struct.tmax = reusable_stc_struct.tmax + (reusable_stc_struct.tstep * trimmed_epoch_length);
         end
         
         % Reuse an stc struct with all the right vertices and tstep in it already.
