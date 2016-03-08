@@ -17,6 +17,7 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
     promptOptions.functionCaller = 'lag_fixed_searchlight_mapping_source';
     promptOptions.defaultResponse = 'S';
     promptOptions.checkFiles(1).address = mapsPath;
+    promptOptions.quiet = true;
 
     overwriteFlag = overwritePrompt(userOptions, promptOptions);
 
