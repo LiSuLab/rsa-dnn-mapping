@@ -1,4 +1,6 @@
-function dRDM = dynamic_bn_models()
+function dRDM = dynamic_hidden_layer_models(distance_type)
+
+    if ~exist('distance_type', 'var'), distance_type = 'correlation'; end
 
     bn_activations = load('/imaging/cw04/CSLB/Analysis_DNN/Models/hidden_layer_7BN_activations.mat');
     
@@ -20,7 +22,7 @@ function dRDM = dynamic_bn_models()
            word_activation = bn_activations.(word);
            data_this_timepoint(word_i, :) = word_activation(t, :);
        end
-       RDM_this_timepoint = pdist(data_this_timepoint, 'correlation');
+       RDM_this_timepoint = pdist(data_this_timepoint, distance_type);
        dRDM(t).RDM = RDM_this_timepoint;
     end
 

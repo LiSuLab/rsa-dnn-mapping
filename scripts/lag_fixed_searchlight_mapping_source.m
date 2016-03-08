@@ -17,6 +17,7 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
     promptOptions.functionCaller = 'lag_fixed_searchlight_mapping_source';
     promptOptions.defaultResponse = 'S';
     promptOptions.checkFiles(1).address = mapsPath;
+    promptOptions.quiet = true;
 
     overwriteFlag = overwritePrompt(userOptions, promptOptions);
 
@@ -36,7 +37,7 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         %% map the volume with the searchlight
 
         % Preallocate looped matrices for speed
-        % Preallocate as zeros asthis will be saved as an STC.
+        % Preallocate as zeros as it will be saved as an STC.
         r_mesh = zeros(n_mask_vertices, nWindowPositions);
 
         % Search through time
@@ -67,8 +68,14 @@ function [mapsPath] = lag_fixed_searchlight_mapping_source(chi, data_RDM_paths, 
         rSTCStruct.vertices = slMask.vertices;
         % r_mesh contains only the data inside the mask, but since the
         % vertices are stored in this struct, that should be ok.
-        rSTCStruct.data     = r_mesh(:,:);
-        % Correct lag
+        rSTCStruct.data     = r_mesh;
+        % Correct lag.
+        % In the case where model_lag is greater than zero, the model is
+        % making predictions about the data at a positively shifted lag.
+        % Therefore we must negatively shift the lag in the result - e.g.
+        % if we have a model for +10ms audio, the matching this with +0ms
+        % data is like making a prediction before the audio was heard:
+        % -10ms.
         rSTCStruct.tmin     = rSTCStruct.tmin - (model_lag_ms / 1000);
         rSTCStruct.tmax     = rSTCStruct.tmax - (model_lag_ms / 1000);
         

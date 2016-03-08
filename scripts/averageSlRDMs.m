@@ -26,7 +26,6 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, use
     
     if overwriteFlag
 
-        nSubjects = numel(userOptions.subjectNames);
         for chi = 'LR'
             
             % We need these sizes to preallocate the matrices before
@@ -49,8 +48,6 @@ function [ averageRDMPaths ] = averageSlRDMs( RDMsPaths, slMasks, betaCorrs, use
 
                     prints('\tLoading searchlight RDMs for subject %s (%d/%d) %sh...', this_subject_name, subject_i, nSubjects, lower(chi));
                     this_subject_slRDMs = directLoad(RDMsPaths(subject_i, t).(chi));
-
-                    prints('\tAdding RDMs at all vertices and timepoints...');
 
                     % zero-out nans
                     nan_locations = isnan(this_subject_slRDMs);
