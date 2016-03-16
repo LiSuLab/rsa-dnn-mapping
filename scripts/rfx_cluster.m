@@ -60,118 +60,7 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
     
         adjacency_matrix = sparse_connectivity_matrix_from_vert_adjacency(vertices, vertex_adjacency);
         
-        % To begin with we don't look for temporal contiguity.  We label
-        % spatially contiguous clusters in each timepoint with a unique
-        % label.
-        spatial_cluster_labels.(chi) = zeros(n_verts.(chi), n_timepoints);
-        
-        running_cluster_count = 0;
-        for t = 1:n_timepoints
-            
-            % We're interested in identifying contiguous clusters, so we'll
-            % forget adjacency information for sub-threshold vertices.
-            masked_adjacency_matrix = adjacency_matrix;
-            masked_adjacency_matrix(threshoded_tmap(:, t) == 0, :                         ) = 0;
-            masked_adjacency_matrix(                         :, threshoded_tmap(:, t) == 0) = 0;
-            
-            % A cell array of components at this timepoint. Each component is a vector of
-            % vertex names.
-            component_list_this_t = connected_components(masked_adjacency_matrix);
-            n_clusters_this_t = numel(component_list_this_t);
-            
-            for component_i = 1:n_clusters_this_t
-                spatial_cluster_labels.(chi)(component_list_this_t(component_i), t) = running_cluster_count + component_i;
-            end
-            
-            running_cluster_count = running_cluster_count + n_clusters_this_t;
-        end
-        
-        merging_done_last_pass = true;
-        while merging_done_last_pass
-            % If merging was done last pass, we'll check agian.
-            
-            merging_done_last_pass = false;
-        
-            % Make a forward pass and relabel any clusters which are
-            % temporally adjacent
-
-            for t = 1:n_timepoints-1
-                vis_overlap = find( ...
-                    spatial_cluster_labels.(chi)(:, t) .* spatial_cluster_labels.(chi)(:, t+1));
-
-                % record pairs of cluster ids which are to be merged between
-                % these adjacent timepoints
-                cluster_id_pairs_to_merge = [];
-                for overlap_vi = vis_overlap
-                   cluster_id_pairs_to_merge = [ ...
-                       cluster_id_pairs_to_merge; ...
-                       [spatial_cluster_labels.(chi)(overlap_vi, t), spatial_cluster_labels.(chi)(overlap_vi, t+1)]];
-                end
-                cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge);
-                
-                if numel(cluster_id_pairs_to_merge) > 0
-                    merging_done_last_pass = true;
-                end
-
-                % merge clusters
-                for cluster_pair_i = 1:size(cluster_id_pairs_to_merge, 2);
-                    cluster_id_pair = cluster_id_pairs_to_merge(:, cluster_pair_i);
-
-                    % relabel all vertices of the matching clusters in both
-                    % layers to have the same label
-                    spatial_cluster_labels.(chi)(spatial_cluster_labels.(chi) == max(cluster_id_pair)) = min(cluster_id_pair);
-
-                    % relabel all to-merge clusters too
-                    cluster_id_pairs_to_merge(cluster_id_pairs_to_merge == max(cluster_id_pair)) = min(cluster_id_pair);
-                end
-            end%for
-
-            % Now make a reverse pass
-
-            for t = n_timepoints:-1:2
-                vis_overlap = find( ...
-                    spatial_cluster_labels.(chi)(:, t) .* spatial_cluster_labels.(chi)(:, t-1));
-
-                % record pairs of cluster ids which are to be merged between
-                % these adjacent timepoints
-                cluster_id_pairs_to_merge = [];
-                for overlap_vi = vis_overlap
-                   cluster_id_pairs_to_merge = [ ...
-                       cluster_id_pairs_to_merge; ...
-                       [spatial_cluster_labels.(chi)(overlap_vi, t), spatial_cluster_labels.(chi)(overlap_vi, t-1)]];
-                end
-                cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge);
-                
-                if numel(cluster_id_pairs_to_merge) > 0
-                    merging_done_last_pass = true;
-                end
-
-                % merge clusters
-                for cluster_pair_i = 1:size(cluster_id_pairs_to_merge, 2);
-                    cluster_id_pair = cluster_id_pairs_to_merge(:, cluster_pair_i);
-
-                    % relabel all vertices of the matching clusters in both
-                    % layers to have the same label
-                    spatial_cluster_labels.(chi)(spatial_cluster_labels.(chi) == max(cluster_id_pair)) = min(cluster_id_pair);
-
-                    % relabel all to-merge clusters too
-                    cluster_id_pairs_to_merge(cluster_id_pairs_to_merge == max(cluster_id_pair)) = min(cluster_id_pair);
-                end
-            end%for
-        end%while
-        
-        % Relabel clusters
-        
-        remaining_cluster_labels = unique(spatial_cluster_labels.(chi));
-        % these will be sorted
-        
-        n_clusters = numel(remaining_cluster_labels);
-        
-        % renumber clusters in ascending order to prevent collisions
-        for rem_cluster_lab_i = 1:n_clusters
-            rem_cluster_lab = remaining_cluster_labels(rem_cluster_lab_i);
-            spatial_cluster_labels.(chi)(spatial_cluster_labels.(chi) == rem_cluster_lab) = rem_cluster_lab_i;
-        end
+        spatiotemporal_cluster_labels.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
             
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
@@ -188,9 +77,10 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
             sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            spatial_cluster_labels.(chi), ...
+            spatiotemporal_cluster_labels.(chi), ...
             cluster_labels_map_paths.(chi));
-    end
+    
+    end%for:chi
     
     
     
@@ -312,6 +202,125 @@ function component_list = connected_components(sp_adjacency_matrix)
     
     for comp_i = 1:n_connected_components
        component_list{comp_i} = row_perm(row_blockdiv(comp_i):row_blockdiv(comp_i+1));
+    end
+end
+
+
+function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix)
+
+    [n_verts, n_timepoints] = size(thresholded_tmap);
+
+	% To begin with we don't look for temporal contiguity.  We label
+    % spatially contiguous clusters in each timepoint with a unique
+    % label.
+    spatial_cluster_labels = zeros(n_verts.(chi), n_timepoints);
+    
+    running_cluster_count = 0;
+    for t = 1:n_timepoints
+        
+        % We're interested in identifying contiguous clusters, so we'll
+        % forget adjacency information for sub-threshold vertices.
+        masked_adjacency_matrix = adjacency_matrix;
+        masked_adjacency_matrix(thresholded_tmap(:, t) == 0, :                         ) = 0;
+        masked_adjacency_matrix(                         :, thresholded_tmap(:, t) == 0) = 0;
+        
+        % A cell array of components at this timepoint. Each component is a vector of
+        % vertex names.
+        component_list_this_t = connected_components(masked_adjacency_matrix);
+        n_clusters_this_t = numel(component_list_this_t);
+        
+        for component_i = 1:n_clusters_this_t
+            spatial_cluster_labels(component_list_this_t(component_i), t) = running_cluster_count + component_i;
+        end
+        
+        running_cluster_count = running_cluster_count + n_clusters_this_t;
+    end
+    
+    merging_done_last_pass = true;
+    while merging_done_last_pass
+        % If merging was done last pass, we'll check agian.
+        
+        merging_done_last_pass = false;
+    
+        % Make a forward pass and relabel any clusters which are
+        % temporally adjacent
+
+        for t = 1:n_timepoints-1
+            vis_overlap = find( ...
+                spatial_cluster_labels(:, t) .* spatial_cluster_labels(:, t+1));
+
+            % record pairs of cluster ids which are to be merged between
+            % these adjacent timepoints
+            cluster_id_pairs_to_merge = [];
+            for overlap_vi = vis_overlap
+               cluster_id_pairs_to_merge = [ ...
+                   cluster_id_pairs_to_merge; ...
+                   [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t+1)]];
+            end
+            cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge);
+            
+            if numel(cluster_id_pairs_to_merge) > 0
+                merging_done_last_pass = true;
+            end
+
+            % merge clusters
+            for cluster_pair_i = 1:size(cluster_id_pairs_to_merge, 2);
+                cluster_id_pair = cluster_id_pairs_to_merge(:, cluster_pair_i);
+
+                % relabel all vertices of the matching clusters in both
+                % layers to have the same label
+                spatial_cluster_labels(spatial_cluster_labels == max(cluster_id_pair)) = min(cluster_id_pair);
+
+                % relabel all to-merge clusters too
+                cluster_id_pairs_to_merge(cluster_id_pairs_to_merge == max(cluster_id_pair)) = min(cluster_id_pair);
+            end
+        end%for
+
+        % Now make a reverse pass
+
+        for t = n_timepoints:-1:2
+            vis_overlap = find( ...
+                spatial_cluster_labels(:, t) .* spatial_cluster_labels(:, t-1));
+
+            % record pairs of cluster ids which are to be merged between
+            % these adjacent timepoints
+            cluster_id_pairs_to_merge = [];
+            for overlap_vi = vis_overlap
+               cluster_id_pairs_to_merge = [ ...
+                   cluster_id_pairs_to_merge; ...
+                   [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t-1)]];
+            end
+            cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge);
+            
+            if numel(cluster_id_pairs_to_merge) > 0
+                merging_done_last_pass = true;
+            end
+
+            % merge clusters
+            for cluster_pair_i = 1:size(cluster_id_pairs_to_merge, 2);
+                cluster_id_pair = cluster_id_pairs_to_merge(:, cluster_pair_i);
+
+                % relabel all vertices of the matching clusters in both
+                % layers to have the same label
+                spatial_cluster_labels(spatial_cluster_labels == max(cluster_id_pair)) = min(cluster_id_pair);
+
+                % relabel all to-merge clusters too
+                cluster_id_pairs_to_merge(cluster_id_pairs_to_merge == max(cluster_id_pair)) = min(cluster_id_pair);
+            end
+        end%for
+    end%while
+    
+    % Relabel clusters
+    
+    remaining_cluster_labels = unique(spatial_cluster_labels);
+    % these will be sorted
+    
+    n_clusters = numel(remaining_cluster_labels);
+    
+    % renumber clusters in ascending order to prevent collisions
+    for rem_cluster_lab_i = 1:n_clusters
+        rem_cluster_lab = remaining_cluster_labels(rem_cluster_lab_i);
+        spatial_cluster_labels(spatial_cluster_labels == rem_cluster_lab) = rem_cluster_lab_i;
     end
 end
 
