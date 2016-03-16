@@ -4,7 +4,7 @@
 %
 % Original author: Li Su 2012-02
 % Updated: Cai Wingfield 2015-11, 2016-03
-function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, p_threshold, userOptions)
+function [observed_map_paths, permuted_map_paths] = rfx_permutation_tmaps(map_paths, n_flips, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -14,8 +14,6 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
     maps_dir = fullfile(userOptions.rootPath, 'Maps');
 
     n_subjects = numel(userOptions.subjectNames);
-    
-    confidence_level = 1 - p_threshold;
     
     % Load the first dataset to look at size of data
     for chi = 'LR'
@@ -47,21 +45,33 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
     group_tmaps_observed.L = group_tmap_observed_overall(1:n_verts.L,       :);
     group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
     
-    % Write out unthresholded t-map
+    % Write out unthresholded t-maps
     for chi = 'LR'
+        observed_map_paths.(chi) = fullfile( ...
+            maps_dir, ...
+            sprintf('%s_group_tmap_observed-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
             group_tmaps_observed.(chi), ...
-            fullfile(maps_dir, sprintf('%s_group_tmap_observed-%sh.stc', userOptions.analysisName, lower(chi))));
+            observed_map_paths.(chi));
     end
     
     % We will compute the maximum t-value for each
     % permutation and store those in a null distribution.
     
-    max_t_values_L = nan(1, n_flips);
-    max_t_values_R = nan(1, n_flips);
-    max_t_values_B = nan(1, n_flips);
+    % -1 because we'll 0-index them
+    n_digits = ceil(log(n_flips-1));
+    flip_format = ['%0', num2str(n_digits), 'd'];
+    
+    % delete data fields from hemi_mesh_stc to avoid broadcasting it to all
+    % workers
+    for chi = 'LR'
+        hemi_mesh_stc.(chi) = rmfield(hemi_mesh_stc.(chi), 'data');
+    end
+    
     parfor flip_i = 1:n_flips
+        
+        flip_name = sprintf(flip_format, flip_i-1);
         
         % Occasional update
         if mod(flip_i, floor(n_flips/100)) == 0, prints('Flipping coin %d of %d...', flip_i, n_flips); end%if
@@ -81,19 +91,24 @@ function [null_t_dists, corrected_thresholds] = cluster_rfx(map_paths, n_flips, 
 
         group_tmap_sim_l = group_tmap_sim(1:n_verts.L,       :);
         group_tmap_sim_r = group_tmap_sim(  n_verts.L+1:end, :);
-
-        max_t_values_L(flip_i) = max(group_tmap_sim_l(:));
-        max_t_values_R(flip_i) = max(group_tmap_sim_r(:));
-        max_t_values_B(flip_i) = max(group_tmap_sim(:));
+        
+        % Write out permuted tmap
+        permuted_map_paths(flip_i).L = fullfile( ...
+            maps_dir, ...
+            sprintf('rfx_perm%s_tmap-lh.stc', flip_name));
+        permuted_map_paths(flip_i).R = fullfile( ...
+            maps_dir, ...
+            sprintf('rfx_perm%s_tmap-rh.stc', flip_name));
+        
+        write_stc_file( ...
+            hemi_mesh_stc.L, ...
+            group_tmap_sim_l, ...
+            permuted_map_paths(flip_i).L);
+        write_stc_file( ...
+            hemi_mesh_stc.R, ...
+            group_tmap_sim_r, ...
+            permuted_map_paths(flip_i).R);
     end
-
-    null_t_dists.L = sort(max_t_values_L);
-    null_t_dists.R = sort(max_t_values_R);
-    null_t_dists.B = sort(max_t_values_B);
-
-    corrected_thresholds.L = quantile(null_t_dists.L, confidence_level);
-    corrected_thresholds.R = quantile(null_t_dists.R, confidence_level);
-    corrected_thresholds.B = quantile(null_t_dists.B, confidence_level);
 
 end%function
 
