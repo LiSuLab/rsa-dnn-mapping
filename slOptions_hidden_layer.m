@@ -78,8 +78,8 @@ userOptions.maskPath = '/imaging/ef02/lexpro/subject/average/label/[[maskName]]'
 % For MEG sensor-level analysis, only the use of a single mask is
 % supported.
 userOptions.maskNames = { ...
-    ...%'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
-    'lateral-lh', 'lateral-rh',...
+    'STG_STS_HG-lh', 'STG_STS_HG-rh', ...
+    ...'lateral-lh', 'lateral-rh',...
 };
 
 % The type of pattern to look at.
@@ -153,9 +153,12 @@ userOptions.sourceSearchlightRadius = 20;
 
 % Spatial downsampling.
 % Set the target number of vertices per hemisphere.
-userOptions.targetResolution = 5121;%10242;
+% TODO: if there are only certain valid values here, they should be listed.
+% TODO: or should all downsampling be done outside the toolbox?  perhaps
+%       it's out of scope?
+userOptions.targetResolution = 10242;%10242;
 
-% TODO: Explain this
+% TODO: This should be calculated on the fly, not hard-coded.
 % 5mm is the smallest distance between two adjacent vertex in 10242 resolution.
 % 10mm is the smallest distance between two adjacent vertex in 2562 resolution.
 userOptions.minDist = 5; %mm
