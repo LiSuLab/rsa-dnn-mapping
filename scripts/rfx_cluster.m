@@ -4,7 +4,7 @@
 %
 % Original author: Li Su 2012-02
 % Updated: Cai Wingfield 2015-11, 2016-03
-function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_flips, primary_p_threshold, userOptions)
+function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, primary_p_threshold, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -51,11 +51,6 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
     group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
     
     
-    %% Simulation
-    
-    
-    
-    
     %% Identify observed clusters
     
     for chi = 'LR'
@@ -63,9 +58,9 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
         vertex_level_threshold = quantile(group_tmaps_observed.(chi), 1-primary_p_threshold);
         thresholded_tmap = (group_tmaps_observed.(chi) > vertex_level_threshold);
     
-        adjacency_matrix = sparse_connectivity_matrix_from_vert_adjacency(vertices, vertex_adjacency);
+        adjacency_matrix.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency);
         
-        labelled_spatiotemporal_clusters.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
+        labelled_spatiotemporal_clusters.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix.(chi));
         n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
             
         % write out unthresholded t-map
@@ -93,17 +88,13 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
             cluster_stats.(chi)(cluster_i) = sum(cluster_exceedences(:));
         end
         
-        
-    
     end%for:chi
     
     
+    %% Simulation    
+    
     % We will compute the maximum t-value for each
     % permutation and store those in a null distribution.
-    
-    % -1 because we'll 0-index them
-    n_digits = ceil(log(n_flips-1));
-    flip_format = ['%0', num2str(n_digits), 'd'];
     
     % delete data fields from hemi_mesh_stc to avoid broadcasting it to all
     % workers
@@ -111,9 +102,11 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
         hemi_mesh_stc.(chi) = rmfield(hemi_mesh_stc.(chi), 'data');
     end
     
+    % preallocate null distribution vectors for each hemisphere
+    h0_l = nan(n_flips, 1);
+    h0_r = nan(n_flips, 1);
+    
     parfor flip_i = 1:n_flips
-        
-        flip_name = sprintf(flip_format, flip_i-1);
         
         % Occasional update
         if mod(flip_i, floor(n_flips/100)) == 0, prints('Flipping coin %d of %d...', flip_i, n_flips); end%if
@@ -131,33 +124,74 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
         
         group_tmap_sim = squeeze(flipped_stats.tstat);
 
-        group_tmap_sim_l = group_tmap_sim(1:n_verts.L,       :);
-        group_tmap_sim_r = group_tmap_sim(  n_verts.L+1:end, :);
+        group_tmap_sim.L = group_tmap_sim(1:n_verts.L,       :);
+        group_tmap_sim.R = group_tmap_sim(  n_verts.L+1:end, :);
         
-        % Write out permuted tmap
-        permuted_map_paths(flip_i).L = fullfile( ...
-            simulation_dir, ...
-            sprintf('rfx_perm%s_tmap-lh.stc', flip_name));
-        permuted_map_paths(flip_i).R = fullfile( ...
-            simulation_dir, ...
-            sprintf('rfx_perm%s_tmap-rh.stc', flip_name));
+        % For some reason Matlab won't let me do this loop insid of a
+        % parfor.
         
-        write_stc_file( ...
-            hemi_mesh_stc.L, ...
-            group_tmap_sim_l, ...
-            permuted_map_paths(flip_i).L);
-        write_stc_file( ...
-            hemi_mesh_stc.R, ...
-            group_tmap_sim_r, ...
-            permuted_map_paths(flip_i).R);
+        chi = 'L';
+        
+        vertex_level_threshold = quantile(group_tmap_sim.(chi), 1-primary_p_threshold);
+        sim_thresholded_tmap = (group_tmap_sim.(chi) > vertex_level_threshold);
+        labelled_simulated_clusters = label_spatiotemporal_clusters(sim_thresholded_tmap, adjacency_matrix.(chi));
+        n_sim_clusters = numel(unique(labelled_simulated_clusters.(chi)));
+        sim_cluster_stats = nan(n_sim_clusters, 1);
+        for cluster_i = 1:n_sim_clusters
+            % cluster exceedence mass
+            vertices_this_cluster = (labelled_simulated_clusters.(chi) == cluster_i);
+            sim_cluster_exceedences = group_tmap_sim.(chi)(vertices_this_cluster, :) - vertex_level_threshold;
+            sim_cluster_stats(cluster_i) = sum(sim_cluster_exceedences(:));
+        end
+        % Select the largest cluster stat to control FWE
+        h0_l(flip_i) = max(sim_cluster_stats);
+        
+        chi = 'R';
+        
+        vertex_level_threshold = quantile(group_tmap_sim.(chi), 1-primary_p_threshold);
+        sim_thresholded_tmap = (group_tmap_sim.(chi) > vertex_level_threshold);
+        labelled_simulated_clusters = label_spatiotemporal_clusters(sim_thresholded_tmap, adjacency_matrix.(chi));
+        n_sim_clusters = numel(unique(labelled_simulated_clusters.(chi)));
+        sim_cluster_stats = nan(n_sim_clusters, 1);
+        for cluster_i = 1:n_sim_clusters
+            % cluster exceedence mass
+            vertices_this_cluster = (labelled_simulated_clusters.(chi) == cluster_i);
+            sim_cluster_exceedences = group_tmap_sim.(chi)(vertices_this_cluster, :) - vertex_level_threshold;
+            sim_cluster_stats(cluster_i) = sum(sim_cluster_exceedences(:));
+        end
+        % Select the largest cluster stat to control FWE
+        h0_r(flip_i) = max(sim_cluster_stats);
+    end
+    
+    h0.L = h0_l;
+    h0.R = h0_r;
+    
+    clear h0_l h0_r;
+    
+    
+    %% Assign corrected ps to each observed cluster
+    
+    for chi = 'LR'
+        
+        n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
+        
+        for cluster_i = 1:n_clusters
+            corrected_ps.(chi)(cluster_i) = quantile(cluster_stats.(chi)(cluster_i), h0.(chi));
+        end
+        
     end
 
 end%function
 
+
+%% %%%%%%%%%%%%%
+% Subfunctions %
+%%%%%%%%%%%%%%%%
+
 % vertex_adjacency - we assume that this has already been downsampled to the current resolution.
 % vertices - a list of vertex names (as opposed to vertex indices) relating
 %            to the current data.
-function adjacency_matrix = sparse_connectivity_matrix_from_vert_adjacency(vertices, vertex_adjacency)
+function adjacency_matrix = neighbours2adjacency(vertices, vertex_adjacency)
 
     import rsa.*
     import rsa.meg.*
