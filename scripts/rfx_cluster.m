@@ -16,19 +16,26 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
 
     n_subjects = numel(userOptions.subjectNames);
     
-    % Compute an adjacency matrix of the downsampled mesh.
-    vertex_adjacency = calculateMeshAdjacency(userOptions.targetResolution, userOptions.minDist);
+    
+    %% Get actual data
     
     % Load the first dataset to look at size of data
     for chi = 'LR'
         hemi_mesh_stc.(chi) = mne_read_stc_file1(map_paths(1).(chi));
         [n_verts.(chi), n_timepoints] = size(hemi_mesh_stc.(chi).data);
+        % delete data fields from hemi_mesh_stc to avoid broadcasting it to all
+        % workers
+        hemi_mesh_stc.(chi) = rmfield(hemi_mesh_stc.(chi), 'data');
     end
     n_verts_overall = n_verts.L + n_verts.R;
     
+    % Compute an adjacency matrix of the downsampled mesh.
+    vertex_adjacency = calculateMeshAdjacency(userOptions.targetResolution, userOptions.minDist);
+    for chi = 'LR'
+        adjacency_matrix.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency);
+    end
     
-    %% Observed t-maps
-    
+    % Load in and stack up subject correlation-maps
     all_subject_rhos = nan(n_subjects, n_verts_overall, n_timepoints);
     for subject_i = 1:n_subjects
         % Left
@@ -38,58 +45,12 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         hemi_mesh_stc.R = mne_read_stc_file1(map_paths(subject_i).R);
         all_subject_rhos(subject_i,   n_verts.L+1:end, :) = hemi_mesh_stc.R.data;
     end
-
-    [h,p,ci,stats] = ttest(all_subject_rhos);
-    group_tmap_observed_overall = squeeze(stats.tstat);
-    
-    % Set nan values to 0
-    % TODO: why would there be nans?
-    group_tmap_observed_overall(isnan(group_tmap_observed_overall)) = 0;
-    
-    % Split into hemispheres
-    group_tmaps_observed.L = group_tmap_observed_overall(1:n_verts.L,       :);
-    group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
-    
-    
-    %% Identify observed clusters
-    
-    for chi = 'LR'
-        
-        adjacency_matrix.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency);
-        
-        [labelled_spatiotemporal_clusters.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix.(chi), group_tmaps_observed.(chi), primary_p_threshold);
-        
-        % write out unthresholded t-map
-        observed_map_paths.(chi) = fullfile( ...
-            maps_dir, ...
-            sprintf('%s_group_tmap_observed-%sh.stc', userOptions.analysisName, lower(chi)));
-        write_stc_file( ...
-            hemi_mesh_stc.(chi), ...
-            group_tmaps_observed.(chi), ...
-            observed_map_paths.(chi));
-        
-        % write out cluster map
-        cluster_labels_map_paths.(chi) = fullfile( ...
-            simulation_dir, ...
-            sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
-        write_stc_file( ...
-            hemi_mesh_stc.(chi), ...
-            labelled_spatiotemporal_clusters.(chi), ...
-            cluster_labels_map_paths.(chi));
-        
-    end%for:chi
     
     
     %% Simulation    
     
     % We will compute the maximum t-value for each
     % permutation and store those in a null distribution.
-    
-    % delete data fields from hemi_mesh_stc to avoid broadcasting it to all
-    % workers
-    for chi = 'LR'
-        hemi_mesh_stc.(chi) = rmfield(hemi_mesh_stc.(chi), 'data');
-    end
     
     % preallocate null distribution vectors for each hemisphere
     h0_l = nan(n_flips, 1);
@@ -136,6 +97,47 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     h0.R = h0_r;
     
     clear h0_l h0_r;
+    
+    
+    %% Observed t-maps
+
+    [h,p,ci,stats] = ttest(all_subject_rhos);
+    group_tmap_observed_overall = squeeze(stats.tstat);
+    
+    % Set nan values to 0
+    % TODO: why would there be nans?
+    group_tmap_observed_overall(isnan(group_tmap_observed_overall)) = 0;
+    
+    % Split into hemispheres
+    group_tmaps_observed.L = group_tmap_observed_overall(1:n_verts.L,       :);
+    group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
+    
+    
+    %% Identify observed clusters
+    
+    for chi = 'LR'
+        
+        [labelled_spatiotemporal_clusters.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix.(chi), group_tmaps_observed.(chi), primary_p_threshold);
+        
+        % write out unthresholded t-map
+        observed_map_paths.(chi) = fullfile( ...
+            maps_dir, ...
+            sprintf('%s_group_tmap_observed-%sh.stc', userOptions.analysisName, lower(chi)));
+        write_stc_file( ...
+            hemi_mesh_stc.(chi), ...
+            group_tmaps_observed.(chi), ...
+            observed_map_paths.(chi));
+        
+        % write out cluster map
+        cluster_labels_map_paths.(chi) = fullfile( ...
+            simulation_dir, ...
+            sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
+        write_stc_file( ...
+            hemi_mesh_stc.(chi), ...
+            labelled_spatiotemporal_clusters.(chi), ...
+            cluster_labels_map_paths.(chi));
+        
+    end%for:chi
     
     
     %% Assign corrected ps to each observed cluster
@@ -211,6 +213,7 @@ function component_list = connected_components(sp_adjacency_matrix)
     % connected component in the adjacency matrix.
     n_connected_components = numel(row_blockdiv)-1;
     
+    component_list = cell(n_connected_components, 1);
     for comp_i = 1:n_connected_components
        component_list{comp_i} = row_perm(row_blockdiv(comp_i):row_blockdiv(comp_i+1));
     end
@@ -232,8 +235,8 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
         % We're interested in identifying contiguous clusters, so we'll
         % forget adjacency information for sub-threshold vertices.
         masked_adjacency_matrix = adjacency_matrix;
-        masked_adjacency_matrix(thresholded_tmap(:, t) == 0, :                         ) = 0;
-        masked_adjacency_matrix(                         :, thresholded_tmap(:, t) == 0) = 0;
+        masked_adjacency_matrix(thresholded_tmap(:, t) == 0, :                          ) = 0;
+        masked_adjacency_matrix(                          :, thresholded_tmap(:, t) == 0) = 0;
         
         % A cell array of components at this timepoint. Each component is a vector of
         % vertex names.
