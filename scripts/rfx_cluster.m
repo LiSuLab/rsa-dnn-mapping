@@ -51,6 +51,11 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
     group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
     
     
+    %% Simulation
+    
+    
+    
+    
     %% Identify observed clusters
     
     for chi = 'LR'
@@ -60,7 +65,8 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
     
         adjacency_matrix = sparse_connectivity_matrix_from_vert_adjacency(vertices, vertex_adjacency);
         
-        spatiotemporal_cluster_labels.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
+        labelled_spatiotemporal_clusters.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
+        n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
             
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
@@ -77,17 +83,19 @@ function [observed_map_paths, permuted_map_paths] = rfx_cluster(map_paths, n_fli
             sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            spatiotemporal_cluster_labels.(chi), ...
+            labelled_spatiotemporal_clusters.(chi), ...
             cluster_labels_map_paths.(chi));
+        
+        for cluster_i = 1:n_clusters
+            % cluster exceedence mass
+            vertices_this_cluster = (labelled_spatiotemporal_clusters.(chi) == cluster_i);
+            cluster_exceedences = group_tmaps_observed.(chi)(vertices_this_cluster, :) - vertex_level_threshold;
+            cluster_stats.(chi)(cluster_i) = sum(cluster_exceedences(:));
+        end
+        
+        
     
     end%for:chi
-    
-    
-    
-    
-    
-    
-    
     
     
     % We will compute the maximum t-value for each
