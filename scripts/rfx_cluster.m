@@ -162,7 +162,7 @@ end%function
 % vertex_adjacency - we assume that this has already been downsampled to the current resolution.
 % vertices - a list of vertex names (as opposed to vertex indices) relating
 %            to the current data.
-function adjacency_matrix = neighbours2adjacency(vertices, vertex_adjacency)
+function adjacency_matrix = neighbours2adjacency(masked_vertices, vertex_adjacency)
 
     import rsa.*
     import rsa.meg.*
@@ -171,13 +171,17 @@ function adjacency_matrix = neighbours2adjacency(vertices, vertex_adjacency)
     % graph. So we will describe each edge by a "starting" and an "ending"
     % vertex.
     
+    % Before we proceed, we will forget all adjacency information about
+    % vertices outside the mask
+    vertex_adjacency = vertex_adjacency(masked_vertices, :);
+    
     % For each starting vertex, there are at most `max_valence` corresponding ending
     % vertices, where `max_valence` is the maximum valence of the graph.
     max_valence = size(vertex_adjacency, 2);
     
     % The list of starting vertices is the list of vertices repeated
     % `max_valence` times.
-    starting_vertices = repmat(vertices(:), max_valence, 1); 
+    starting_vertices = repmat(masked_vertices(:), max_valence, 1); 
     
     % Since vertex_adjacency is indexed in the first dimension by actual
     % vertex name, the corresponding list of ending vertices can be
@@ -190,6 +194,12 @@ function adjacency_matrix = neighbours2adjacency(vertices, vertex_adjacency)
     null_edge_locations = isnan(ending_vertices);
     starting_vertices = starting_vertices(~null_edge_locations);
     ending_vertices   = ending_vertices(~null_edge_locations);
+    
+    % We finally need to check again for ending vertices outside the mask,
+    % and remove those.
+    inside_mask_edge_locations = ismember(ending_vertices, masked_vertices);
+    starting_vertices = starting_vertices(inside_mask_edge_locations);
+    ending_vertices   = ending_vertices(inside_mask_edge_locations);
     
     % Now we create the adjacency matrix from the edge lists.
     adjacency_matrix = sparse(starting_vertices, ending_vertices, 1);
@@ -234,13 +244,13 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
         
         % We're interested in identifying contiguous clusters, so we'll
         % forget adjacency information for sub-threshold vertices.
-        masked_adjacency_matrix = adjacency_matrix;
-        masked_adjacency_matrix(thresholded_tmap(:, t) == 0, :                          ) = 0;
-        masked_adjacency_matrix(                          :, thresholded_tmap(:, t) == 0) = 0;
+        thresholded_adjacency_matrix = adjacency_matrix;
+        thresholded_adjacency_matrix(thresholded_tmap(:, t) == 0, :                          ) = 0;
+        thresholded_adjacency_matrix(                          :, thresholded_tmap(:, t) == 0) = 0;
         
         % A cell array of components at this timepoint. Each component is a vector of
         % vertex names.
-        component_list_this_t = connected_components(masked_adjacency_matrix);
+        component_list_this_t = connected_components(thresholded_adjacency_matrix);
         n_clusters_this_t = numel(component_list_this_t);
         
         for component_i = 1:n_clusters_this_t
