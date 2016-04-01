@@ -30,7 +30,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     n_verts_overall = n_verts.L + n_verts.R;
     
     % Compute an adjacency matrix of the downsampled mesh.
-    vertex_adjacency = calculateMeshAdjacency(userOptions.targetResolution, userOptions.minDist);
+    vertex_adjacency = calculateMeshAdjacency(userOptions.targetResolution, userOptions.minDist, userOptions);
     for chi = 'LR'
         adjacency_matrix.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency);
     end
