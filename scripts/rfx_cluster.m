@@ -32,7 +32,8 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     % Compute an adjacency matrix of the downsampled mesh.
     vertex_adjacency = calculateMeshAdjacency(userOptions.targetResolution, userOptions.minDist, userOptions);
     for chi = 'LR'
-        adjacency_matrix.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency);
+        % 'iwm' - index within mask
+        adjacency_matrix_iwm.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency, userOptions);
     end
     
     % Load in and stack up subject correlation-maps
@@ -56,13 +57,13 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     h0_l = nan(n_flips, 1);
     h0_r = nan(n_flips, 1);
     
-    parfor flip_i = 1:n_flips
+    for flip_i = 1:n_flips
         
         % Occasional update
         if mod(flip_i, floor(n_flips/100)) == 0, prints('Flipping coin %d of %d...', flip_i, n_flips); end%if
         
         % Flip a coin for each subject
-        flips = coinToss([n_subjects, 1, 1]);
+        flips = (2 * coinToss([n_subjects, 1, 1])) - 1;
         % Copy this to make it the same size as the data
         flips = repmat(flips, [1, n_verts_overall, n_timepoints]);
         
@@ -72,23 +73,23 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         % Compute t-stats for this flip
         [h,p,ci, flipped_stats] = ttest(flipped_rhos);
         
-        group_tmap_sim = squeeze(flipped_stats.tstat);
+        group_tmap_sim_both_hemis = squeeze(flipped_stats.tstat);
 
-        group_tmap_sim.L = group_tmap_sim(1:n_verts.L,       :);
-        group_tmap_sim.R = group_tmap_sim(  n_verts.L+1:end, :);
+        group_tmap_sim_L = group_tmap_sim_both_hemis(1:n_verts.L,       :);
+        group_tmap_sim_R = group_tmap_sim_both_hemis(  n_verts.L+1:end, :);
         
         % For some reason Matlab won't let me do this loop insid of a
         % parfor.
         
         chi = 'L';
         
-        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix.(chi), group_tmap_sim, primary_p_threshold);
+        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_L, primary_p_threshold, hemi_mesh_stc.(chi).vertices);
         
         h0_l(flip_i) = max(sim_cluster_stats);
         
         chi = 'R';
         
-        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix.(chi), group_tmap_sim, primary_p_threshold);
+        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_R, primary_p_threshold, hemi_mesh_stc.(chi).vertices);
         
         h0_r(flip_i) = max(sim_cluster_stats);
     end
@@ -117,7 +118,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     
     for chi = 'LR'
         
-        [labelled_spatiotemporal_clusters.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix.(chi), group_tmaps_observed.(chi), primary_p_threshold);
+        [labelled_spatiotemporal_clusters.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmaps_observed.(chi), primary_p_threshold);
         
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
@@ -162,10 +163,12 @@ end%function
 % vertex_adjacency - we assume that this has already been downsampled to the current resolution.
 % vertices - a list of vertex names (as opposed to vertex indices) relating
 %            to the current data.
-function adjacency_matrix = neighbours2adjacency(masked_vertices, vertex_adjacency)
+function adjacency_matrix_iwm = neighbours2adjacency(masked_vertices, vertex_adjacency, userOptions)
 
     import rsa.*
     import rsa.meg.*
+    
+    n_vertices = numel(masked_vertices);
     
     % To produce an adjacency matrix is to enumerate all the edges of a
     % graph. So we will describe each edge by a "starting" and an "ending"
@@ -181,28 +184,42 @@ function adjacency_matrix = neighbours2adjacency(masked_vertices, vertex_adjacen
     
     % The list of starting vertices is the list of vertices repeated
     % `max_valence` times.
-    starting_vertices = repmat(masked_vertices(:), max_valence, 1); 
+    % 'iwb' - index within brain
+    starting_vertices_iwb = repmat(masked_vertices(:), max_valence, 1); 
     
     % Since vertex_adjacency is indexed in the first dimension by actual
     % vertex name, the corresponding list of ending vertices can be
     % achieved by concatenating the rows of vertex_adjacency.
-    ending_vertices = vertex_adjacency';
-    ending_vertices = ending_vertices(:);
+    ending_vertices_iwb = vertex_adjacency';
+    ending_vertices_iwb = ending_vertices_iwb(:);
     
     % Since not every vertex achieves `max_valence`, we look for nans in
     % ending vertices and then delete these from both lists
-    null_edge_locations = isnan(ending_vertices);
-    starting_vertices = starting_vertices(~null_edge_locations);
-    ending_vertices   = ending_vertices(~null_edge_locations);
+    null_edge_locations = isnan(ending_vertices_iwb);
+    starting_vertices_iwb = starting_vertices_iwb(~null_edge_locations);
+    ending_vertices_iwb   = ending_vertices_iwb(~null_edge_locations);
     
     % We finally need to check again for ending vertices outside the mask,
     % and remove those.
-    inside_mask_edge_locations = ismember(ending_vertices, masked_vertices);
-    starting_vertices = starting_vertices(inside_mask_edge_locations);
-    ending_vertices   = ending_vertices(inside_mask_edge_locations);
+    inside_mask_edge_locations = ismember(ending_vertices_iwb, masked_vertices);
+    starting_vertices_iwb = starting_vertices_iwb(inside_mask_edge_locations);
+    ending_vertices_iwb   = ending_vertices_iwb(inside_mask_edge_locations);
+    
+    % Our adjacency matrix will descibe vertices inside the mask only, so
+    % the row and columns of the matrix will be pointers into the list of
+    % vertices in the mask.
+    % 'iwm' - index within mask
+    starting_vertices_iwm = nan(1, numel(starting_vertices_iwb));
+    ending_vertices_iwm   = nan(1, numel(ending_vertices_iwb));
+    for vi = 1:numel(starting_vertices_iwb)
+        % lookup within-mask indices of within-brain vertex names
+        starting_vertices_iwm(vi) = find(masked_vertices == starting_vertices_iwb(vi), 1);
+        ending_vertices_iwm(vi) = find(masked_vertices == ending_vertices_iwb(vi), 1);
+    end
     
     % Now we create the adjacency matrix from the edge lists.
-    adjacency_matrix = sparse(starting_vertices, ending_vertices, 1);
+    % Need to convert to doubles for no good reason.
+    adjacency_matrix_iwm = sparse(double(starting_vertices_iwm), double(ending_vertices_iwm), 1, n_vertices, n_vertices);
 
 end
 
@@ -210,54 +227,71 @@ end
 % matrix.
 %
 % via http://blogs.mathworks.com/steve/2007/03/20/connected-component-labeling-part-3/
-function component_list = connected_components(sp_adjacency_matrix)
+function component_list = connected_components(adjacency_matrix)
+
+    if numel(adjacency_matrix) == 0
+       component_list = {}; 
+    else
     
-    % Add 1s to the diagonal of the adjacency matrix to ensure that each
-    % lone vertex becomes a connected component.
-    sp_adjacency_matrix(1:size(sp_adjacency_matrix, 1):end);
-    
-    % Compute the Dulmage-Mendelsohn decomposition of the adjacency matrix.
-    [row_perm, col_perm, row_blockdiv, col_blockdiv] = dmperm(sp_adjacency_matrix);
-    
-    % Then `row_blockdiv` contains the indices in `row_perm` beginning each
-    % connected component in the adjacency matrix.
-    n_connected_components = numel(row_blockdiv)-1;
-    
-    component_list = cell(n_connected_components, 1);
-    for comp_i = 1:n_connected_components
-       component_list{comp_i} = row_perm(row_blockdiv(comp_i):row_blockdiv(comp_i+1));
+        % Add 1s to the diagonal of the adjacency matrix to ensure that each
+        % lone vertex becomes a connected component.
+        adjacency_matrix(1:size(adjacency_matrix, 1)+1:end) = 1;
+
+        % Compute the Dulmage-Mendelsohn decomposition of the adjacency matrix.
+        [row_perm, col_perm, row_blockdiv, col_blockdiv] = dmperm(adjacency_matrix);
+
+        % Then `row_blockdiv` contains the indices in `row_perm` beginning each
+        % connected component in the adjacency matrix. -1 for fenceposting.
+        n_connected_components = numel(row_blockdiv)-1;
+
+        component_list = cell(n_connected_components, 1);
+        for comp_i = 1:n_connected_components
+           component_list{comp_i} = row_perm(row_blockdiv(comp_i):row_blockdiv(comp_i+1)-1);
+        end
     end
 end
 
 
-function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix)
+function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix, vertices)
 
     [n_verts, n_timepoints] = size(thresholded_tmap);
+    
+    % Don't want to remember size info about this.
+    adjacency_matrix = full(adjacency_matrix);
 
 	% To begin with we don't look for temporal contiguity.  We label
     % spatially contiguous clusters in each timepoint with a unique
     % label.
-    spatial_cluster_labels = zeros(n_verts.(chi), n_timepoints);
+    spatial_cluster_labels = zeros(n_verts, n_timepoints);
     
     running_cluster_count = 0;
     for t = 1:n_timepoints
         
         % We're interested in identifying contiguous clusters, so we'll
         % forget adjacency information for sub-threshold vertices.
-        thresholded_adjacency_matrix = adjacency_matrix;
-        thresholded_adjacency_matrix(thresholded_tmap(:, t) == 0, :                          ) = 0;
-        thresholded_adjacency_matrix(                          :, thresholded_tmap(:, t) == 0) = 0;
+        
+        % We just take the sub-matrix for the vertices above the threshold
+        % 'iwm' - index within mask
+        super_threshold_vs_iwm = find(thresholded_tmap(:, t));
+        % 'iwc' - index within cluster
+        thresholded_adjacency_matrix_iwc = adjacency_matrix(super_threshold_vs_iwm, super_threshold_vs_iwm);
         
         % A cell array of components at this timepoint. Each component is a vector of
         % vertex names.
-        component_list_this_t = connected_components(thresholded_adjacency_matrix);
-        n_clusters_this_t = numel(component_list_this_t);
+        component_list_this_t_iwc = connected_components(thresholded_adjacency_matrix_iwc);
+        n_clusters_this_t = numel(component_list_this_t_iwc);
         
         for component_i = 1:n_clusters_this_t
-            spatial_cluster_labels(component_list_this_t(component_i), t) = running_cluster_count + component_i;
+            running_cluster_count = running_cluster_count + 1;
+            
+            % Change the vis in the connected components to point back into the
+            % mask region.
+            % 'iwc' - index within cluster
+            component_vs_iwc = component_list_this_t_iwc{component_i};
+            component_vs_iwm = super_threshold_vs_iwm(component_vs_iwc);
+            
+            spatial_cluster_labels(component_vs_iwm, t) = running_cluster_count;
         end
-        
-        running_cluster_count = running_cluster_count + n_clusters_this_t;
     end
     
     merging_done_last_pass = true;
@@ -276,7 +310,7 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
             % record pairs of cluster ids which are to be merged between
             % these adjacent timepoints
             cluster_id_pairs_to_merge = [];
-            for overlap_vi = vis_overlap
+            for overlap_vi = vis_overlap'
                cluster_id_pairs_to_merge = [ ...
                    cluster_id_pairs_to_merge; ...
                    [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t+1)]];
@@ -348,10 +382,10 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
     end
 end
 
-function [labelled_spatiotemporal_clusters, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold)
-    vertex_level_threshold = quantile(group_tmaps_observed, 1-primary_p_threshold);
+function [labelled_spatiotemporal_clusters, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold, vertices)
+    vertex_level_threshold = quantile(group_tmaps_observed(:), 1-primary_p_threshold);
     thresholded_tmap = (group_tmaps_observed > vertex_level_threshold);
-    labelled_spatiotemporal_clusters.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix.(chi));
+    labelled_spatiotemporal_clusters.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix, vertices);
     
     n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
     
