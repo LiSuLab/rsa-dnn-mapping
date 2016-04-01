@@ -52,9 +52,6 @@ function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, use
         if truncate
             trimmed_epoch_length = n_timepoints - n_lags + 1;
             average_data = average_data(:, 1:trimmed_epoch_length);
-        
-            % Adjust the timing which will have changed on a truncation
-            reusable_stc_struct.tmax = reusable_stc_struct.tmax + (reusable_stc_struct.tstep * trimmed_epoch_length);
         end
         
         % Reuse an stc struct with all the right vertices and tstep in it already.
