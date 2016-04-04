@@ -33,7 +33,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     vertex_adjacency = calculateMeshAdjacency(userOptions.targetResolution, userOptions.minDist, userOptions);
     for chi = 'LR'
         % 'iwm' - index within mask
-        adjacency_matrix_iwm.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency, userOptions);
+        adjacency_matrix_iwm.(chi) = neighbours2adjacency(hemi_mesh_stc.(chi).vertices, vertex_adjacency);
     end
     
     % Load in and stack up subject correlation-maps
@@ -131,7 +131,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         
         % write out cluster map
         cluster_labels_map_paths.(chi) = fullfile( ...
-            m, ...
+            maps_dir, ...
             sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
@@ -163,7 +163,7 @@ end%function
 % vertex_adjacency - we assume that this has already been downsampled to the current resolution.
 % vertices - a list of vertex names (as opposed to vertex indices) relating
 %            to the current data.
-function adjacency_matrix_iwm = neighbours2adjacency(masked_vertices, vertex_adjacency, userOptions)
+function adjacency_matrix_iwm = neighbours2adjacency(masked_vertices, vertex_adjacency)
 
     import rsa.*
     import rsa.meg.*
@@ -174,13 +174,18 @@ function adjacency_matrix_iwm = neighbours2adjacency(masked_vertices, vertex_adj
     % graph. So we will describe each edge by a "starting" and an "ending"
     % vertex.
     
-    % Before we proceed, we will forget all adjacency information about
-    % vertices outside the mask
-    vertex_adjacency = vertex_adjacency(masked_vertices, :);
-    
     % For each starting vertex, there are at most `max_valence` corresponding ending
     % vertices, where `max_valence` is the maximum valence of the graph.
     max_valence = size(vertex_adjacency, 2);
+    
+    % Before we proceed, we will forget all adjacency information about
+    % vertices outside the mask.
+    % 'iwm' - index within mask
+    vertex_adjacency_iwm = vertex_adjacency(masked_vertices, :);
+    
+    % The row indices of vertex_adjacency_iwm now point to vertices in
+    % masked_vertices.  Hence we call it iwm.  However the actual ENTRIES
+    % in vertex_adjacency_iwm are vertices indexed-within-brain.
     
     % The list of starting vertices is the list of vertices repeated
     % `max_valence` times.
@@ -190,7 +195,7 @@ function adjacency_matrix_iwm = neighbours2adjacency(masked_vertices, vertex_adj
     % Since vertex_adjacency is indexed in the first dimension by actual
     % vertex name, the corresponding list of ending vertices can be
     % achieved by concatenating the rows of vertex_adjacency.
-    ending_vertices_iwb = vertex_adjacency';
+    ending_vertices_iwb = vertex_adjacency_iwm;
     ending_vertices_iwb = ending_vertices_iwb(:);
     
     % Since not every vertex achieves `max_valence`, we look for nans in
