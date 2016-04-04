@@ -130,13 +130,13 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
             observed_map_paths.(chi));
         
         % write out thresholded t-map
-        observed_thresholded_map_paths.(chi) = fullfile( ...
+        observed_thresholded_map_paths_uncorr.(chi) = fullfile( ...
             maps_dir, ...
             sprintf('%s_group_tmap_observed_thresholded_uncorrected-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
             thresholded_tmaps.(chi), ...
-            observed_thresholded_map_paths.(chi));
+            observed_thresholded_map_paths_uncorr.(chi));
         
         % write out cluster map
         cluster_labels_map_paths.(chi) = fullfile( ...
@@ -153,9 +153,24 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
         
         for cluster_i = 1:n_clusters
+            
             corrected_ps.(chi)(cluster_i) = quantile(cluster_stats.(chi)(cluster_i), h0.(chi));
+            
+            % Delete this cluster if it's sub corrected threshold
+            if corrected_ps.(chi)(cluster_i) > primary_p_threshold
+                thresholded_tmaps.(chi)(labelled_spatiotemporal_clusters.(chi) == cluster_i) = 0;
+            end
         end
         
+        % write out corrected cluster map
+        observed_thresholded_map_paths_corr.(chi) = fullfile( ...
+            maps_dir, ...
+            sprintf('%s_group_tmap_observed_thresholded_corrected-%sh.stc', userOptions.analysisName, lower(chi)));
+        write_stc_file( ...
+            hemi_mesh_stc.(chi), ...
+            thresholded_tmaps.(chi), ...
+            observed_thresholded_map_paths_corr.(chi));
+    
     end
 
 end%function
