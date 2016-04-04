@@ -311,9 +311,13 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
             % these adjacent timepoints
             cluster_id_pairs_to_merge = [];
             for overlap_vi = vis_overlap'
-               cluster_id_pairs_to_merge = [ ...
-                   cluster_id_pairs_to_merge; ...
-                   [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t+1)]];
+                cluster_pair = [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t+1)];
+                % only remember to merge genuinely different pairs
+                if cluster_pair(1) ~= cluster_pair(2)
+                    cluster_id_pairs_to_merge = [ ...
+                        cluster_id_pairs_to_merge; ...
+                        cluster_pair];
+                end
             end
             cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge, 'rows');
             
@@ -344,9 +348,13 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
             % these adjacent timepoints
             cluster_id_pairs_to_merge = [];
             for overlap_vi = vis_overlap'
-               cluster_id_pairs_to_merge = [ ...
-                   cluster_id_pairs_to_merge; ...
-                   [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t-1)]];
+                cluster_pair = [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t-1)];
+                % only remember to merge genuinely different pairs
+                if cluster_pair(1) ~= cluster_pair(2)
+                    cluster_id_pairs_to_merge = [ ...
+                        cluster_id_pairs_to_merge; ...
+                        cluster_pair];
+                end
             end
             cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge, 'rows');
             
@@ -369,8 +377,11 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
     
     % Relabel clusters
     
-    remaining_cluster_labels = unique(spatial_cluster_labels);
     % these will be sorted
+    remaining_cluster_labels = unique(spatial_cluster_labels);
+    
+    % forget the 'background' cluster
+    remaining_cluster_labels = remaining_cluster_labels(remaining_cluster_labels > 0);
     
     n_clusters = numel(remaining_cluster_labels);
     
@@ -384,9 +395,9 @@ end
 function [labelled_spatiotemporal_clusters, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold, vertices)
     vertex_level_threshold = quantile(group_tmaps_observed(:), 1-primary_p_threshold);
     thresholded_tmap = (group_tmaps_observed > vertex_level_threshold);
-    labelled_spatiotemporal_clusters.(chi) = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix, vertices);
+    labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix, vertices);
     
-    n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
+    n_clusters = numel(unique(labelled_spatiotemporal_clusters));
     
     cluster_stats = nan(n_clusters, 1);
     for cluster_i = 1:n_clusters
