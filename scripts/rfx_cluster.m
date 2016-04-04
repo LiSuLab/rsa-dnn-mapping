@@ -83,13 +83,13 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         
         chi = 'L';
         
-        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_L, primary_p_threshold);
+        [labelled_sim_clusters, thresholded_sim_tmaps, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_L, primary_p_threshold);
         
         h0_l(flip_i) = max(sim_cluster_stats);
         
         chi = 'R';
         
-        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_R, primary_p_threshold);
+        [labelled_sim_clusters, thresholded_sim_tmaps, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_R, primary_p_threshold);
         
         h0_r(flip_i) = max(sim_cluster_stats);
     end
@@ -118,7 +118,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     
     for chi = 'LR'
         
-        [labelled_spatiotemporal_clusters.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmaps_observed.(chi), primary_p_threshold);
+        [labelled_spatiotemporal_clusters.(chi), thresholded_tmaps.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmaps_observed.(chi), primary_p_threshold);
         
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
@@ -129,21 +129,26 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
             group_tmaps_observed.(chi), ...
             observed_map_paths.(chi));
         
+        % write out thresholded t-map
+        observed_thresholded_map_paths.(chi) = fullfile( ...
+            maps_dir, ...
+            sprintf('%s_group_tmap_observed_thresholded_uncorrected-%sh.stc', userOptions.analysisName, lower(chi)));
+        write_stc_file( ...
+            hemi_mesh_stc.(chi), ...
+            thresholded_tmaps.(chi), ...
+            observed_thresholded_map_paths.(chi));
+        
         % write out cluster map
         cluster_labels_map_paths.(chi) = fullfile( ...
             maps_dir, ...
-            sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
+            sprintf('%s_group_tmap_labelled_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
             labelled_spatiotemporal_clusters.(chi), ...
             cluster_labels_map_paths.(chi));
-        
-    end%for:chi
     
     
-    %% Assign corrected ps to each observed cluster
-    
-    for chi = 'LR'
+        %% Threshold and squash clusters that don't meet the corrected significance level.
         
         n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
         
@@ -397,7 +402,7 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
     end
 end
 
-function [labelled_spatiotemporal_clusters, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold)
+function [labelled_spatiotemporal_clusters, thresholded_tmap, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold)
     vertex_level_threshold = quantile(group_tmaps_observed(:), 1-primary_p_threshold);
     thresholded_tmap = (group_tmaps_observed > vertex_level_threshold);
     labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
