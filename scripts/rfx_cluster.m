@@ -343,20 +343,19 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
             % record pairs of cluster ids which are to be merged between
             % these adjacent timepoints
             cluster_id_pairs_to_merge = [];
-            for overlap_vi = vis_overlap
+            for overlap_vi = vis_overlap'
                cluster_id_pairs_to_merge = [ ...
                    cluster_id_pairs_to_merge; ...
                    [spatial_cluster_labels(overlap_vi, t), spatial_cluster_labels(overlap_vi, t-1)]];
             end
-            cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge);
+            cluster_id_pairs_to_merge = unique(cluster_id_pairs_to_merge, 'rows');
             
             if numel(cluster_id_pairs_to_merge) > 0
                 merging_done_last_pass = true;
             end
 
             % merge clusters
-            for cluster_pair_i = 1:size(cluster_id_pairs_to_merge, 2);
-                cluster_id_pair = cluster_id_pairs_to_merge(:, cluster_pair_i);
+            for cluster_id_pair = cluster_id_pairs_to_merge'
 
                 % relabel all vertices of the matching clusters in both
                 % layers to have the same label
