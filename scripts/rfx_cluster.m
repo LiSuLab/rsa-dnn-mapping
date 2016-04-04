@@ -57,7 +57,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     h0_l = nan(n_flips, 1);
     h0_r = nan(n_flips, 1);
     
-    for flip_i = 1:n_flips
+    parfor flip_i = 1:n_flips
         
         % Occasional update
         if mod(flip_i, floor(n_flips/100)) == 0, prints('Flipping coin %d of %d...', flip_i, n_flips); end%if
@@ -83,13 +83,13 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         
         chi = 'L';
         
-        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_L, primary_p_threshold, hemi_mesh_stc.(chi).vertices);
+        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_L, primary_p_threshold);
         
         h0_l(flip_i) = max(sim_cluster_stats);
         
         chi = 'R';
         
-        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_R, primary_p_threshold, hemi_mesh_stc.(chi).vertices);
+        [labelled_sim_clusters, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_R, primary_p_threshold);
         
         h0_r(flip_i) = max(sim_cluster_stats);
     end
@@ -131,7 +131,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         
         % write out cluster map
         cluster_labels_map_paths.(chi) = fullfile( ...
-            simulation_dir, ...
+            m, ...
             sprintf('%s_group_tmap_observed_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
@@ -252,7 +252,7 @@ function component_list = connected_components(adjacency_matrix)
 end
 
 
-function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix, vertices)
+function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix)
 
     [n_verts, n_timepoints] = size(thresholded_tmap);
     
@@ -392,18 +392,18 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
     end
 end
 
-function [labelled_spatiotemporal_clusters, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold, vertices)
+function [labelled_spatiotemporal_clusters, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold)
     vertex_level_threshold = quantile(group_tmaps_observed(:), 1-primary_p_threshold);
     thresholded_tmap = (group_tmaps_observed > vertex_level_threshold);
-    labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix, vertices);
+    labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
     
     n_clusters = numel(unique(labelled_spatiotemporal_clusters));
     
     cluster_stats = nan(n_clusters, 1);
     for cluster_i = 1:n_clusters
         % cluster exceedence mass
-        vertices_this_cluster = (labelled_spatiotemporal_clusters == cluster_i);
-        cluster_exceedences = group_tmaps_observed(vertices_this_cluster, :) - vertex_level_threshold;
+        this_cluster_location = (labelled_spatiotemporal_clusters == cluster_i);
+        cluster_exceedences = group_tmaps_observed(this_cluster_location) - vertex_level_threshold;
         cluster_stats(cluster_i) = sum(cluster_exceedences(:));
     end
 end
