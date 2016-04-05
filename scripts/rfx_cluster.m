@@ -94,10 +94,8 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         h0_r(flip_i) = max(sim_cluster_stats);
     end
     
-    h0.L = h0_l;
-    h0.R = h0_r;
-    
-    clear h0_l h0_r;
+    h0.L = sort(h0_l); clear h0_l;
+    h0.R = sort(h0_r); clear h0_r;
     
     
     %% Observed t-maps
@@ -150,11 +148,16 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     
         %% Threshold and squash clusters that don't meet the corrected significance level.
         
-        n_clusters = numel(unique(labelled_spatiotemporal_clusters.(chi)));
+        cluster_ids = unique(labelled_spatiotemporal_clusters.(chi));
+        % The cluster whose id is zero is not a cluster at all, so we delete it
+        % here. It's the background!
+        cluster_ids = cluster_ids(cluster_ids > 0);
         
-        for cluster_i = 1:n_clusters
+        for cluster_i = cluster_ids'
             
-            corrected_ps.(chi)(cluster_i) = quantile(cluster_stats.(chi)(cluster_i), h0.(chi));
+            % Work out quantile position of actual value in h0 (which is
+            % sorted) and assign that as a corrected p.
+            corrected_ps.(chi)(cluster_i) = 1-((sum(h0.(chi) < cluster_stats.(chi)(cluster_i)) + 0.5*sum(h0.(chi) == cluster_stats.(chi)(cluster_i)))/numel(h0.(chi)));
             
             % Delete this cluster if it's sub corrected threshold
             if corrected_ps.(chi)(cluster_i) > primary_p_threshold
@@ -417,19 +420,27 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
     end
 end
 
-function [labelled_spatiotemporal_clusters, thresholded_tmap, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps_observed, primary_p_threshold)
-    vertex_level_threshold = quantile(group_tmaps_observed(:), 1-primary_p_threshold);
-    thresholded_tmap = (group_tmaps_observed > vertex_level_threshold);
+function [labelled_spatiotemporal_clusters, thresholded_tmap, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps, primary_p_threshold)
+    vertex_level_threshold = quantile(group_tmaps(:), 1-primary_p_threshold);
+    thresholded_tmap = (group_tmaps > vertex_level_threshold);
     labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
     
-    n_clusters = numel(unique(labelled_spatiotemporal_clusters));
+    cluster_ids = unique(labelled_spatiotemporal_clusters);
+    % The cluster whose id is zero is not a cluster at all, so we delete it
+    % here. It's the background!
+    cluster_ids = cluster_ids(cluster_ids > 0);
     
-    cluster_stats = nan(n_clusters, 1);
-    for cluster_i = 1:n_clusters
+    % preallocate
+    cluster_stats = nan(size(cluster_ids));
+    
+    for cluster_i = cluster_ids'
         % cluster exceedence mass
         this_cluster_location = (labelled_spatiotemporal_clusters == cluster_i);
-        cluster_exceedences = group_tmaps_observed(this_cluster_location) - vertex_level_threshold;
+        cluster_exceedences = group_tmaps(this_cluster_location) - vertex_level_threshold;
         cluster_stats(cluster_i) = sum(cluster_exceedences(:));
     end
+    
+    % Return thresholded maps, since we have them here.
+    thresholded_tmap(thresholded_tmap > 0) = group_tmaps(thresholded_tmap > 0);
 end
 
