@@ -79,6 +79,8 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
             % Compute average r-map
             group_map_sim_both_hemis = mean(flipped_rhos, 1);
             group_map_sim_both_hemis = squeeze(group_map_sim_both_hemis);
+        else
+            error('Must be ''t'' or ''r''.');
         end
 
         group_map_sim_L = group_map_sim_both_hemis(1:n_verts.L,       :);
@@ -89,19 +91,27 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
         
         chi = 'L';
         
-        [labelled_sim_clusters, thresholded_sim_maps, sim_cluster_stats] = compute_cluster_stats( ...
+        labelled_sim_clusters = idenfity_clusters( ...
             adjacency_matrix_iwm.(chi), ...
             group_map_sim_L, ...
             cluster_forming_threshold);
+        
+        sim_cluster_stats = cluster_exceedence_mass( ...
+            labelled_sim_clusters, ...
+            group_map_sim_L);
         
         h0_l(flip_i) = max(sim_cluster_stats);
         
         chi = 'R';
         
-        [labelled_sim_clusters, thresholded_sim_maps, sim_cluster_stats] = compute_cluster_stats( ...
+        labelled_sim_clusters = idenfity_clusters( ...
             adjacency_matrix_iwm.(chi), ...
             group_map_sim_R, ...
             cluster_forming_threshold);
+        
+        sim_cluster_stats = cluster_exceedence_mass( ...
+            labelled_sim_clusters, ...
+            group_map_sim_R);
         
         h0_r(flip_i) = max(sim_cluster_stats);
     end
@@ -118,6 +128,8 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
     elseif strcmpi(stat, 'r')
         group_map_observed_overall = mean(all_subject_rhos, 1);
         group_map_observed_overall = squeeze(group_map_observed_overall);
+        else
+            error('Must be ''t'' or ''r''.');
     end
     
     % Set nan values to 0
@@ -133,10 +145,14 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
     
     for chi = 'LR'
         
-        [labelled_spatiotemporal_clusters.(chi), thresholded_maps.(chi), cluster_stats.(chi)] = compute_cluster_stats( ...
+        labelled_spatiotemporal_clusters.(chi) = idenfity_clusters( ...
             adjacency_matrix_iwm.(chi), ...
             group_maps_observed.(chi), ...
             cluster_forming_threshold);
+        
+        cluster_stats.(chi) = cluster_exceedence_mass( ...
+            labelled_spatiotemporal_clusters.(chi), ...
+            group_maps_observed.(chi));
         
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
@@ -301,10 +317,12 @@ function component_list = connected_components(adjacency_matrix)
     end
 end
 
+% Given a binary spatiotemporal map and an adjacency matrix, this will
+% return a map which looks the same as the binary map, but where each
+% spatiotemporally contiguous cluster has a unique integer label.
+function spatial_cluster_labels = label_spatiotemporal_clusters(binary_map, adjacency_matrix)
 
-function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_map, adjacency_matrix)
-
-    [n_verts, n_timepoints] = size(thresholded_map);
+    [n_verts, n_timepoints] = size(binary_map);
     
     % Don't want to remember size info about this.
     adjacency_matrix = full(adjacency_matrix);
@@ -322,7 +340,7 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_map,
         
         % We just take the sub-matrix for the vertices above the threshold
         % 'iwm' - index within mask
-        super_threshold_vs_iwm = find(thresholded_map(:, t));
+        super_threshold_vs_iwm = find(binary_map(:, t));
         % 'iwc' - index within cluster
         thresholded_adjacency_matrix_iwc = adjacency_matrix(super_threshold_vs_iwm, super_threshold_vs_iwm);
         
@@ -442,10 +460,19 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_map,
     end
 end
 
-function [labelled_spatiotemporal_clusters, thresholded_map, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_maps, cluster_forming_threshold)
+% Given an adjacency matrix, some spatiotemporal maps, and a
+% cluster-forming threshold, this will return labelled spatiotemporal
+% clusters.
+function labelled_spatiotemporal_clusters = idenfity_clusters(adjacency_matrix, group_maps, cluster_forming_threshold)
     vertex_level_threshold = quantile(group_maps(:), 1-cluster_forming_threshold);
     thresholded_map = (group_maps > vertex_level_threshold);
     labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_map, adjacency_matrix);
+end
+
+% Given some spatiotemporal maps and some identically-sized cluster labels,
+% this will return a cluster-label-indexed vector of cluster exceedence
+% masses.
+function cluster_stats = cluster_exceedence_mass(labelled_spatiotemporal_clusters, group_maps)
     
     cluster_ids = unique(labelled_spatiotemporal_clusters);
     % The cluster whose id is zero is not a cluster at all, so we delete it
@@ -461,9 +488,4 @@ function [labelled_spatiotemporal_clusters, thresholded_map, cluster_stats] = co
         cluster_exceedences = group_maps(this_cluster_location) - vertex_level_threshold;
         cluster_stats(cluster_i) = sum(cluster_exceedences(:));
     end
-    
-    % Return thresholded maps, since we have them here.
-    thresholded_map = double(thresholded_map);
-    thresholded_map(thresholded_map > 0) = group_maps(thresholded_map > 0);
 end
-
