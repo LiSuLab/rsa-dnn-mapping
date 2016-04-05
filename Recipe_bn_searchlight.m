@@ -171,7 +171,8 @@ rsa.util.prints(...
     'RFX stats...');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-primary_threshold = 0.05;
+cluster_forming_threshold = 0.01;
+fdr_threshold = 0.05;
 n_permutations = 1000;
 
 rsa.util.prints('Simulating statistial-maps...');
@@ -181,7 +182,8 @@ rsa.util.prints('Simulating statistial-maps...');
     n_permutations, ...
     ...% statistic type
     't', ...
-    primary_threshold, ...
+    cluster_forming_threshold, ...
+    fdr_threshold, ...
     userOptions);
 
 

@@ -4,7 +4,7 @@
 %
 % Original author: Li Su 2012-02
 % Updated: Cai Wingfield 2015-11, 2016-03
-function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, stat, primary_p_threshold, userOptions)
+function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, stat, cluster_forming_threshold, fdr_threshold, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -92,7 +92,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
         [labelled_sim_clusters, thresholded_sim_maps, sim_cluster_stats] = compute_cluster_stats( ...
             adjacency_matrix_iwm.(chi), ...
             group_map_sim_L, ...
-            primary_p_threshold);
+            cluster_forming_threshold);
         
         h0_l(flip_i) = max(sim_cluster_stats);
         
@@ -101,7 +101,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
         [labelled_sim_clusters, thresholded_sim_maps, sim_cluster_stats] = compute_cluster_stats( ...
             adjacency_matrix_iwm.(chi), ...
             group_map_sim_R, ...
-            primary_p_threshold);
+            cluster_forming_threshold);
         
         h0_r(flip_i) = max(sim_cluster_stats);
     end
@@ -133,7 +133,10 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
     
     for chi = 'LR'
         
-        [labelled_spatiotemporal_clusters.(chi), thresholded_maps.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_maps_observed.(chi), primary_p_threshold);
+        [labelled_spatiotemporal_clusters.(chi), thresholded_maps.(chi), cluster_stats.(chi)] = compute_cluster_stats( ...
+            adjacency_matrix_iwm.(chi), ...
+            group_maps_observed.(chi), ...
+            cluster_forming_threshold);
         
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
@@ -163,21 +166,23 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
             cluster_labels_map_paths.(chi));
     
     
-        %% Threshold and squash clusters that don't meet the corrected significance level.
+        %% Squash clusters that don't meet the corrected significance level.
         
         cluster_ids = unique(labelled_spatiotemporal_clusters.(chi));
         % The cluster whose id is zero is not a cluster at all, so we delete it
         % here. It's the background!
         cluster_ids = cluster_ids(cluster_ids > 0);
         
+        corrected_ps = nan(size(cluster_ids));
+        
         for cluster_i = cluster_ids'
             
             % Work out quantile position of actual value in h0 (which is
             % sorted) and assign that as a corrected p.
-            corrected_ps.(chi)(cluster_i) = 1-((sum(h0.(chi) < cluster_stats.(chi)(cluster_i)) + 0.5*sum(h0.(chi) == cluster_stats.(chi)(cluster_i)))/numel(h0.(chi)));
+            corrected_ps(cluster_i) = 1 - ((sum(h0.(chi) < cluster_stats.(chi)(cluster_i)) + 0.5*sum(h0.(chi) == cluster_stats.(chi)(cluster_i)))/numel(h0.(chi)));
             
-            % Delete this cluster if it's sub corrected threshold
-            if corrected_ps.(chi)(cluster_i) > primary_p_threshold
+            % Delete this cluster if it doesn't meet the corrected threshold
+            if corrected_ps(cluster_i) > fdr_threshold
                 thresholded_maps.(chi)(labelled_spatiotemporal_clusters.(chi) == cluster_i) = 0;
             end
         end
@@ -437,8 +442,8 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_map,
     end
 end
 
-function [labelled_spatiotemporal_clusters, thresholded_map, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_maps, primary_p_threshold)
-    vertex_level_threshold = quantile(group_maps(:), 1-primary_p_threshold);
+function [labelled_spatiotemporal_clusters, thresholded_map, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_maps, cluster_forming_threshold)
+    vertex_level_threshold = quantile(group_maps(:), 1-cluster_forming_threshold);
     thresholded_map = (group_maps > vertex_level_threshold);
     labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_map, adjacency_matrix);
     
