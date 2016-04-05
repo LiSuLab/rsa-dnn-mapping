@@ -4,7 +4,7 @@
 %
 % Original author: Li Su 2012-02
 % Updated: Cai Wingfield 2015-11, 2016-03
-function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, primary_p_threshold, userOptions)
+function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, stat, primary_p_threshold, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -70,26 +70,38 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
         % Apply the flips to the subject data.
         flipped_rhos = all_subject_rhos .* flips;
         
-        % Compute t-stats for this flip
-        [h,p,ci, flipped_stats] = ttest(flipped_rhos);
-        
-        group_tmap_sim_both_hemis = squeeze(flipped_stats.tstat);
+        if strcmpi(stat, 't')
+            % Compute t-stats for this flip
+            [h,p,ci, flipped_stats] = ttest(flipped_rhos);
 
-        group_tmap_sim_L = group_tmap_sim_both_hemis(1:n_verts.L,       :);
-        group_tmap_sim_R = group_tmap_sim_both_hemis(  n_verts.L+1:end, :);
+            group_map_sim_both_hemis = squeeze(flipped_stats.tstat);
+        elseif strcmpi(stat, 'r')
+            % Compute average r-map
+            group_map_sim_both_hemis = mean(flipped_rhos, 1);
+            group_map_sim_both_hemis = squeeze(group_map_sim_both_hemis);
+        end
+
+        group_map_sim_L = group_map_sim_both_hemis(1:n_verts.L,       :);
+        group_map_sim_R = group_map_sim_both_hemis(  n_verts.L+1:end, :);
         
         % For some reason Matlab won't let me do this loop insid of a
         % parfor.
         
         chi = 'L';
         
-        [labelled_sim_clusters, thresholded_sim_tmaps, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_L, primary_p_threshold);
+        [labelled_sim_clusters, thresholded_sim_maps, sim_cluster_stats] = compute_cluster_stats( ...
+            adjacency_matrix_iwm.(chi), ...
+            group_map_sim_L, ...
+            primary_p_threshold);
         
         h0_l(flip_i) = max(sim_cluster_stats);
         
         chi = 'R';
         
-        [labelled_sim_clusters, thresholded_sim_tmaps, sim_cluster_stats] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmap_sim_R, primary_p_threshold);
+        [labelled_sim_clusters, thresholded_sim_maps, sim_cluster_stats] = compute_cluster_stats( ...
+            adjacency_matrix_iwm.(chi), ...
+            group_map_sim_R, ...
+            primary_p_threshold);
         
         h0_r(flip_i) = max(sim_cluster_stats);
     end
@@ -100,46 +112,51 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
     
     %% Observed t-maps
 
-    [h,p,ci,stats] = ttest(all_subject_rhos);
-    group_tmap_observed_overall = squeeze(stats.tstat);
+    if strcmpi(stat, 't')
+        [h,p,ci,stats] = ttest(all_subject_rhos);
+        group_map_observed_overall = squeeze(stats.tstat);
+    elseif strcmpi(stat, 'r')
+        group_map_observed_overall = mean(all_subject_rhos, 1);
+        group_map_observed_overall = squeeze(group_map_observed_overall);
+    end
     
     % Set nan values to 0
     % TODO: why would there be nans?
-    group_tmap_observed_overall(isnan(group_tmap_observed_overall)) = 0;
+    group_map_observed_overall(isnan(group_map_observed_overall)) = 0;
     
     % Split into hemispheres
-    group_tmaps_observed.L = group_tmap_observed_overall(1:n_verts.L,       :);
-    group_tmaps_observed.R = group_tmap_observed_overall(  n_verts.L+1:end, :);
+    group_maps_observed.L = group_map_observed_overall(1:n_verts.L,       :);
+    group_maps_observed.R = group_map_observed_overall(  n_verts.L+1:end, :);
     
     
     %% Identify observed clusters
     
     for chi = 'LR'
         
-        [labelled_spatiotemporal_clusters.(chi), thresholded_tmaps.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_tmaps_observed.(chi), primary_p_threshold);
+        [labelled_spatiotemporal_clusters.(chi), thresholded_maps.(chi), cluster_stats.(chi)] = compute_cluster_stats(adjacency_matrix_iwm.(chi), group_maps_observed.(chi), primary_p_threshold);
         
         % write out unthresholded t-map
         observed_map_paths.(chi) = fullfile( ...
             maps_dir, ...
-            sprintf('%s_group_tmap_observed-%sh.stc', userOptions.analysisName, lower(chi)));
+            sprintf('%s_group_%s-map_observed-%sh.stc', userOptions.analysisName, stat, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            group_tmaps_observed.(chi), ...
+            group_maps_observed.(chi), ...
             observed_map_paths.(chi));
         
         % write out thresholded t-map
         observed_thresholded_map_paths_uncorr.(chi) = fullfile( ...
             maps_dir, ...
-            sprintf('%s_group_tmap_observed_thresholded_uncorrected-%sh.stc', userOptions.analysisName, lower(chi)));
+            sprintf('%s_group_%s-map_observed_thresholded_uncorrected-%sh.stc', userOptions.analysisName, stat, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            thresholded_tmaps.(chi), ...
+            thresholded_maps.(chi), ...
             observed_thresholded_map_paths_uncorr.(chi));
         
         % write out cluster map
         cluster_labels_map_paths.(chi) = fullfile( ...
             maps_dir, ...
-            sprintf('%s_group_tmap_labelled_clusters-%sh.stc', userOptions.analysisName, lower(chi)));
+            sprintf('%s_group_%s-map_labelled_clusters-%sh.stc', userOptions.analysisName, stat, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
             labelled_spatiotemporal_clusters.(chi), ...
@@ -161,17 +178,17 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, pr
             
             % Delete this cluster if it's sub corrected threshold
             if corrected_ps.(chi)(cluster_i) > primary_p_threshold
-                thresholded_tmaps.(chi)(labelled_spatiotemporal_clusters.(chi) == cluster_i) = 0;
+                thresholded_maps.(chi)(labelled_spatiotemporal_clusters.(chi) == cluster_i) = 0;
             end
         end
         
         % write out corrected cluster map
         observed_thresholded_map_paths_corr.(chi) = fullfile( ...
             maps_dir, ...
-            sprintf('%s_group_tmap_observed_thresholded_corrected-%sh.stc', userOptions.analysisName, lower(chi)));
+            sprintf('%s_group_%s-map_observed_thresholded_corrected-%sh.stc', userOptions.analysisName, stat, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            thresholded_tmaps.(chi), ...
+            thresholded_maps.(chi), ...
             observed_thresholded_map_paths_corr.(chi));
     
     end
@@ -280,9 +297,9 @@ function component_list = connected_components(adjacency_matrix)
 end
 
 
-function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix)
+function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_map, adjacency_matrix)
 
-    [n_verts, n_timepoints] = size(thresholded_tmap);
+    [n_verts, n_timepoints] = size(thresholded_map);
     
     % Don't want to remember size info about this.
     adjacency_matrix = full(adjacency_matrix);
@@ -300,7 +317,7 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
         
         % We just take the sub-matrix for the vertices above the threshold
         % 'iwm' - index within mask
-        super_threshold_vs_iwm = find(thresholded_tmap(:, t));
+        super_threshold_vs_iwm = find(thresholded_map(:, t));
         % 'iwc' - index within cluster
         thresholded_adjacency_matrix_iwc = adjacency_matrix(super_threshold_vs_iwm, super_threshold_vs_iwm);
         
@@ -420,10 +437,10 @@ function spatial_cluster_labels = label_spatiotemporal_clusters(thresholded_tmap
     end
 end
 
-function [labelled_spatiotemporal_clusters, thresholded_tmap, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_tmaps, primary_p_threshold)
-    vertex_level_threshold = quantile(group_tmaps(:), 1-primary_p_threshold);
-    thresholded_tmap = (group_tmaps > vertex_level_threshold);
-    labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_tmap, adjacency_matrix);
+function [labelled_spatiotemporal_clusters, thresholded_map, cluster_stats] = compute_cluster_stats(adjacency_matrix, group_maps, primary_p_threshold)
+    vertex_level_threshold = quantile(group_maps(:), 1-primary_p_threshold);
+    thresholded_map = (group_maps > vertex_level_threshold);
+    labelled_spatiotemporal_clusters = label_spatiotemporal_clusters(thresholded_map, adjacency_matrix);
     
     cluster_ids = unique(labelled_spatiotemporal_clusters);
     % The cluster whose id is zero is not a cluster at all, so we delete it
@@ -436,11 +453,11 @@ function [labelled_spatiotemporal_clusters, thresholded_tmap, cluster_stats] = c
     for cluster_i = cluster_ids'
         % cluster exceedence mass
         this_cluster_location = (labelled_spatiotemporal_clusters == cluster_i);
-        cluster_exceedences = group_tmaps(this_cluster_location) - vertex_level_threshold;
+        cluster_exceedences = group_maps(this_cluster_location) - vertex_level_threshold;
         cluster_stats(cluster_i) = sum(cluster_exceedences(:));
     end
     
     % Return thresholded maps, since we have them here.
-    thresholded_tmap(thresholded_tmap > 0) = group_tmaps(thresholded_tmap > 0);
+    thresholded_map(thresholded_map > 0) = group_maps(thresholded_map > 0);
 end
 
