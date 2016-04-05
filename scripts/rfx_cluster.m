@@ -84,7 +84,7 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
         group_map_sim_L = group_map_sim_both_hemis(1:n_verts.L,       :);
         group_map_sim_R = group_map_sim_both_hemis(  n_verts.L+1:end, :);
         
-        % For some reason Matlab won't let me do this loop insid of a
+        % For some reason Matlab won't let me do this loop inside of a
         % parfor.
         
         chi = 'L';
@@ -458,6 +458,7 @@ function [labelled_spatiotemporal_clusters, thresholded_map, cluster_stats] = co
     end
     
     % Return thresholded maps, since we have them here.
+    thresholded_map = double(thresholded_map);
     thresholded_map(thresholded_map > 0) = group_maps(thresholded_map > 0);
 end
 
