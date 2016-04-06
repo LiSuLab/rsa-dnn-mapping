@@ -1,7 +1,7 @@
 % Given some spatiotemporal maps and some identically-sized cluster labels,
 % this will return a cluster-label-indexed vector of cluster exceedence
 % masses.
-function cluster_stats = cluster_exceedence_mass(labelled_spatiotemporal_clusters, group_maps)
+function cluster_stats = cluster_exceedence_mass(labelled_spatiotemporal_clusters, group_maps, vertex_level_threshold)
     
     cluster_ids = unique(labelled_spatiotemporal_clusters);
     % The cluster whose id is zero is not a cluster at all, so we delete it
