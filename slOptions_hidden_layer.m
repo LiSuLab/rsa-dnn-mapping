@@ -8,7 +8,7 @@ function userOptions = slOptions_hidden_layer()
 userOptions.analysisName = 'lexpro-bn-sl';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_lateral_5121_extended_epoch';
+userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_language_10242';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
@@ -51,14 +51,14 @@ userOptions.flush_Queue = true;
 % i.e. when run_in_parallel_in_cluster = true;
 userOptions.wallTime = '24:00:00';
 % Cluster machines requested.
-userOptions.nodesReq = 16;
+userOptions.nodesReq = 8;
 % Processors requested per processor machine.
 userOptions.proPNode = 1;
 % The product of nodesReq and proPNode should be greater or equal to the
 % number of workers requested.
-userOptions.nWorkers = 16;
+userOptions.nWorkers = 8;
 % In gigabytes, to be distributed amongst all nodes.
-userOptions.memReq = 1440;
+userOptions.memReq = 256;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Modality-agnostic analysis options %%
@@ -68,7 +68,8 @@ userOptions.memReq = 1440;
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames
 % "[[maskName]]" should be used as a placeholder to denote an entry in userOptions.maskNames
 %userOptions.maskPath = '/imaging/fj01/cw04/New_Labels/[[maskName]]';
-userOptions.maskPath = '/imaging/ef02/lexpro/subject/average/label/[[maskName]]';
+%userOptions.maskPath = '/imaging/ef02/lexpro/subject/average/label/[[maskName]]';
+userOptions.maskPath = '/imaging/cw04/CSLB/Lexpro/Masks/[[maskName]]';
 
 % The list of mask filenames (minus .hdr extension) to be used.
 % For MEG, names should be in pairs, such as maskName-lh,
@@ -156,7 +157,7 @@ userOptions.sourceSearchlightRadius = 20;
 % TODO: if there are only certain valid values here, they should be listed.
 % TODO: or should all downsampling be done outside the toolbox?  perhaps
 %       it's out of scope?
-userOptions.targetResolution = 10242;%10242;
+userOptions.targetResolution = 10242;
 
 % TODO: This should be calculated on the fly, not hard-coded.
 % 5mm is the smallest distance between two adjacent vertex in 10242 resolution.

@@ -6,6 +6,7 @@ rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
 dynamic_model_RDM = dynamic_hidden_layer_models('correlation');
+%dynamic_model_RDM = rsa.util.directLoad('/imaging/cw04/CSLB/Analysis_Cepstral/models/cepstral_models_win20_C01-C12');
 n_lags = numel(dynamic_model_RDM);
 
 MODEL_TIMESTEP_ms = 10;

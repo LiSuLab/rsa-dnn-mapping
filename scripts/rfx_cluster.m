@@ -186,16 +186,16 @@ function [observed_map_paths, corrected_ps] = rfx_cluster(map_paths, n_flips, st
         % Copy into binary map
         corrected_clusters.(chi) = double(labelled_spatiotemporal_clusters.(chi) > 0);
         
-        corrected_ps = nan(size(cluster_ids));
+        corrected_ps.(chi) = nan(size(cluster_ids));
         
         for cluster_i = cluster_ids'
             
             % Work out quantile position of actual value in h0 (which is
             % sorted) and assign that as a corrected p.
-            corrected_ps(cluster_i) = 1 - ((sum(h0.(chi) < cluster_stats.(chi)(cluster_i)) + 0.5*sum(h0.(chi) == cluster_stats.(chi)(cluster_i)))/numel(h0.(chi)));
+            corrected_ps.(chi)(cluster_i) = 1 - ((sum(h0.(chi) < cluster_stats.(chi)(cluster_i)) + 0.5*sum(h0.(chi) == cluster_stats.(chi)(cluster_i)))/numel(h0.(chi)));
             
             % Delete this cluster if it doesn't meet the corrected threshold
-            if corrected_ps(cluster_i) > fdr_threshold
+            if corrected_ps.(chi)(cluster_i) > fdr_threshold
                 corrected_clusters.(chi)(labelled_spatiotemporal_clusters.(chi) == cluster_i) = 0;
             end
         end
