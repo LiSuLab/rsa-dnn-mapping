@@ -2,7 +2,7 @@ function dRDM = triphone_dRDM(distance_type)
 
     if ~exist('distance_type', 'var'), distance_type = 'Correlation'; end
     
-    triphone_data = load('/Users/cai/Desktop/scratch/py_out/triphone_likelihoods/actual_triphone_values.mat');
+    triphone_data = load('/imaging/cw04/CSLB/Analysis_DNN/Models/actual_triphone_values.mat');
     triphone_data = orderfields(triphone_data);
     
     words = fieldnames(triphone_data);
