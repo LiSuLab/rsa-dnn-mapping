@@ -32,20 +32,42 @@ function average_stc_paths = lag_integrate_stc_files(map_paths, name_prefix, use
                 [n_verts, n_timepoints] = size(stc_struct.data);
                 
                 % Preallocate
+                
+                % All data over all lags
                 aggregate_data = zeros(n_verts, n_timepoints, n_lags);
+                
+                % The number of lags which contributed to the results at
+                % each timepont.
                 contribution_counts = zeros(1, n_timepoints);
             end
             
             trimmed_epoch_length = n_timepoints - lag_i + 1;
             
-            aggregate_data(:, 1:trimmed_epoch_length, lag_i) = stc_struct.data(:, lag_i:end);
+            % In case the model is constant, we may have nans here. So we
+            % must check for nans and record them accordingly.
+            data_this_lag = stc_struct.data(:, lag_i:end);
+            % Zero out nans, and remember.
+            if any(isnan(data_this_lag))
+                data_this_lag = zeros(size(data_this_lag));
+                nans_here = true;
+            else
+                nans_here = false;
+            end
             
-            contribution_counts(1:trimmed_epoch_length) = contribution_counts(1:trimmed_epoch_length) + 1;
+            aggregate_data(:, 1:trimmed_epoch_length, lag_i) = data_this_lag;
+            
+            if ~nans_here
+                contribution_counts(1:trimmed_epoch_length) = contribution_counts(1:trimmed_epoch_length) + 1;
+            end
             
         end%for:lag_i
         
-        % Mean the remaining data, appropriate
-        average_data = sum(aggregate_data, 3) ./ repmat(contribution_counts, n_verts, 1);
+        % Mean the remaining data over lags, appropriate counts taken into
+        % consideration.
+        
+        % average_data is verts-x-timepionts
+        average_data = sum(aggregate_data, 3);
+        average_data = average_data ./ repmat(contribution_counts, n_verts, 1);
         
         % Truncate those parts of the data after which there is sub-optimal
         % SNR
