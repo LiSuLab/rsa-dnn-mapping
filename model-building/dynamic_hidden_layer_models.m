@@ -1,8 +1,8 @@
-function dRDM = dynamic_hidden_layer_models(distance_type)
+function dRDM = dynamic_hidden_layer_models(layer_name, distance_type)
 
     if ~exist('distance_type', 'var'), distance_type = 'correlation'; end
 
-    bn_activations = load('/imaging/cw04/CSLB/Analysis_DNN/Models/hidden_layer_2_activations.mat');
+    bn_activations = load(sprintf('/imaging/cw04/CSLB/Analysis_DNN/Models/hidden_layer_%s_activations.mat', layer_name));
     
     words = fieldnames(bn_activations);
     n_words = numel(words);
