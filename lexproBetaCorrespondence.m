@@ -25,6 +25,7 @@ function betas = lexproBetaCorrespondence()
 % Copyright (C) 2010 Medical Research Council
 
 betaFilePath = '/imaging/at03/NKG_Data_Sets/LexproMEG/scripts/Stimuli-Lexpro-MEG-Single-col.txt';
+% CONDITIONS ARE IN ALPHABETICAL ORDER OF WORDS
 betaNames = sort(textread(betaFilePath,'%s'));
 preBeta = '[[subjectName]]-';
 postBeta = '-[[LR]]h.stc';

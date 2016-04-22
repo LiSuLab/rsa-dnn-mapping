@@ -5,6 +5,8 @@ function dRDM = dynamic_hidden_layer_models(layer_name, distance_type)
     bn_activations = load(sprintf('/imaging/cw04/CSLB/Analysis_DNN/Models/hidden_layer_%s_activations.mat', layer_name));
     
     words = fieldnames(bn_activations);
+    % CONDITIONS ARE IN ALPHABETICAL ORDER OF WORDS
+    words = sort(words);
     n_words = numel(words);
     
     shortest_word_length = inf;

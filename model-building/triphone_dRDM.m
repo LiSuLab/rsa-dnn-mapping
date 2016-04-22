@@ -6,6 +6,8 @@ function dRDM = triphone_dRDM(distance_type)
     triphone_data = orderfields(triphone_data);
     
     words = fieldnames(triphone_data);
+    % CONDITIONS ARE IN ALPHABETICAL ORDER OF WORDS
+    words = sort(words);
     n_words = numel(words);
     
     % This data starts from frame 2, so we must add an additional blank
