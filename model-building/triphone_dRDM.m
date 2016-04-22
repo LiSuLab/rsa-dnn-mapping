@@ -1,4 +1,4 @@
-function dRDM = triphone_dRDM(distance_type)
+function dRDM = triphone_dRDM(distance_type, frame_cap)
 
     if ~exist('distance_type', 'var'), distance_type = 'Correlation'; end
     
@@ -19,6 +19,9 @@ function dRDM = triphone_dRDM(distance_type)
     dRDM(1).RDM = squareform(zeros(n_words, n_words));
     
     for t = 1:n_timepoints_trimmed
+        
+        % don't exceed the frame cap
+        if t+1 > frame_cap, break; end
        
         data_this_frame = nan(n_words, n_triphones);
         for word_i = 1:n_words
@@ -27,6 +30,7 @@ function dRDM = triphone_dRDM(distance_type)
         end
         
         dRDM(t+1).RDM = pdist(data_this_frame, distance_type);
+        dRDM(t+1).Name = sprintf('triphone_%02d', t+1);
         
     end
 

@@ -1,4 +1,4 @@
-function dRDM = feature_dRDM(distance_type)
+function dRDM = feature_dRDM(distance_type, frame_cap)
 
     if ~exist('distance_type', 'var'), distance_type = 'Correlation'; end
     
@@ -8,8 +8,6 @@ function dRDM = feature_dRDM(distance_type)
     n_features = numel(features);
     
     [n_words, n_timepoints] = size(feature_traces.(features{1}));
-    
-    frame_cap = 27;
     
     dRDM = struct();
     for t = 1:min([n_timepoints, frame_cap])
@@ -24,7 +22,8 @@ function dRDM = feature_dRDM(distance_type)
         end
         
         RDM_this_t = pdist(data_this_t, distance_type);
-        dRDM(t).RDM = RDM_this_t;
+        dRDM(t).RDM  = RDM_this_t;
+        dRDM(t).Name = sprintf('feature_%02d', frame_i);
         
     end
 end

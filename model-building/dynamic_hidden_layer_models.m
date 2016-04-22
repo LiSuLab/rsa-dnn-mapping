@@ -1,6 +1,4 @@
-function dRDM = dynamic_hidden_layer_models(layer_name, distance_type)
-
-    if ~exist('distance_type', 'var'), distance_type = 'correlation'; end
+function dRDM = dynamic_hidden_layer_models(layer_name, distance_type, frame_cap)
 
     bn_activations = load(sprintf('/imaging/cw04/CSLB/Analysis_DNN/Models/hidden_layer_%s_activations.mat', layer_name));
     
@@ -17,7 +15,7 @@ function dRDM = dynamic_hidden_layer_models(layer_name, distance_type)
     end
     
     dRDM = struct();
-    for t = 1:shortest_word_length
+    for t = 1:min([shortest_word_length, frame_cap])
        data_this_timepoint = nan(n_words, n_bn_nodes);
        for word_i = 1:n_words
            word = words{word_i};
@@ -25,7 +23,8 @@ function dRDM = dynamic_hidden_layer_models(layer_name, distance_type)
            data_this_timepoint(word_i, :) = word_activation(t, :);
        end
        RDM_this_timepoint = pdist(data_this_timepoint, distance_type);
-       dRDM(t).RDM = RDM_this_timepoint;
+       dRDM(t).RDM   = RDM_this_timepoint;
+        dRDM(t).Name = sprintf('%s_%02d', layer_name, frame_i);
     end
 
 end%function

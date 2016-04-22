@@ -1,6 +1,4 @@
-function dRDM = mfcc_dRDM(distance_type);
-
-    if ~exist('distance_type', 'var'), distance_type = 'correlation'; end
+function dRDM = mfcc_dRDM(distance_type, frame_cap);
 
     %% Paths
 
@@ -29,7 +27,7 @@ function dRDM = mfcc_dRDM(distance_type);
     % CONDITIONS ARE IN ALPHABETICAL ORDER OF WORDS
     word_list = sort(word_list);
     n_words = numel(word_list);    
-    n_frames = numel(coeffs.C01.(word_list{1}));
+    n_frames = min([numel(coeffs.C01.(word_list{1})), frame_cap]);
 
 
     %% Produce RDMs
@@ -73,7 +71,8 @@ function dRDM = mfcc_dRDM(distance_type);
         
         RDM_this_frame = pdist(data_this_frame, distance_type);
         
-        dRDM(frame_i).RDM = RDM_this_frame;
+        dRDM(frame_i).RDM  = RDM_this_frame;
+        dRDM(frame_i).Name = sprintf('mfcc_%02d', frame_i);
 
     end%for
 
