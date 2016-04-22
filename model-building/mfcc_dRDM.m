@@ -3,7 +3,7 @@ function dRDM = mfcc_dRDM(distance_type, frame_cap);
     %% Paths
 
     % Change these values
-    input_dir = '/imaging/cw04/CSLB/Analysis_DNN/Models/cepstral-coefficients';
+    input_dir = '/Users/cai/Desktop/scratch/py_out/cepstral-coefficients';
 
 
     %% Load in the features
@@ -27,7 +27,7 @@ function dRDM = mfcc_dRDM(distance_type, frame_cap);
     % CONDITIONS ARE IN ALPHABETICAL ORDER OF WORDS
     word_list = sort(word_list);
     n_words = numel(word_list);    
-    n_frames = min([numel(coeffs.C01.(word_list{1})), frame_cap]);
+    n_frames = numel(coeffs.C01.(word_list{1}));
 
 
     %% Produce RDMs
@@ -42,7 +42,7 @@ function dRDM = mfcc_dRDM(distance_type, frame_cap);
     n_windows = n_frames - window_width_in_frames + 1;
 
     % We scan over the coefficients with a sliding window
-    for frame_i = 1:n_windows
+    for frame_i = 1:min([n_windows, frame_cap])
         
         % The window of indices relative to the coefficient timelines
         window = frame_i:frame_i+window_width_in_frames-1;
@@ -72,7 +72,7 @@ function dRDM = mfcc_dRDM(distance_type, frame_cap);
         RDM_this_frame = pdist(data_this_frame, distance_type);
         
         dRDM(frame_i).RDM  = RDM_this_frame;
-        dRDM(frame_i).Name = sprintf('mfcc_%02d', frame_i);
+        dRDM(frame_i).Name = sprintf('mfcc-%02d', frame_i);
 
     end%for
 

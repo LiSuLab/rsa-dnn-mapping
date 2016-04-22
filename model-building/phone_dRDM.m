@@ -22,7 +22,7 @@ function dRDM = phone_dRDM(distance_type, frame_cap)
         
         RDM_this_t = pdist(data_this_t, distance_type);
         dRDM(t).RDM  = RDM_this_t;
-        dRDM(t).Name = sprintf('phone_%02d', t);
+        dRDM(t).Name = sprintf('phone-%02d', t);
         
     end
 end

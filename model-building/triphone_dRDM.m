@@ -2,7 +2,7 @@ function dRDM = triphone_dRDM(distance_type, frame_cap)
 
     if ~exist('distance_type', 'var'), distance_type = 'Correlation'; end
     
-    triphone_data = load('/imaging/cw04/CSLB/Analysis_DNN/Models/actual_triphone_values.mat');
+    triphone_data = load('/Users/cai/Desktop/scratch/py_out/triphone_likelihoods/actual_triphone_values.mat');
     triphone_data = orderfields(triphone_data);
     
     words = fieldnames(triphone_data);
@@ -16,7 +16,8 @@ function dRDM = triphone_dRDM(distance_type, frame_cap)
     
     dRDM = struct();
     
-    dRDM(1).RDM = squareform(zeros(n_words, n_words));
+    dRDM(1).RDM  = squareform(zeros(n_words, n_words));
+    dRDM(1).Name = sprintf('triphone-%02d', 1);
     
     for t = 1:n_timepoints_trimmed
         
@@ -30,7 +31,7 @@ function dRDM = triphone_dRDM(distance_type, frame_cap)
         end
         
         dRDM(t+1).RDM = pdist(data_this_frame, distance_type);
-        dRDM(t+1).Name = sprintf('triphone_%02d', t+1);
+        dRDM(t+1).Name = sprintf('triphone-%02d', t+1);
         
     end
 

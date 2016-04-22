@@ -23,7 +23,7 @@ function dRDM = feature_dRDM(distance_type, frame_cap)
         
         RDM_this_t = pdist(data_this_t, distance_type);
         dRDM(t).RDM  = RDM_this_t;
-        dRDM(t).Name = sprintf('feature_%02d', frame_i);
+        dRDM(t).Name = sprintf('feature-%02d', t);
         
     end
 end
