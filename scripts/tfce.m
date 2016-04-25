@@ -45,15 +45,15 @@ function map_tfce = tfce(map_raw, adjacency_matrix_iwm)
         
         % label the clusters
         h_labelled_clusters = label_spatiotemporal_clusters( ...
-            adjacency_matrix_iwm, ...
-            h_thresholded_map);
+            h_thresholded_map, ...
+            adjacency_matrix_iwm);
         
         % list of cluster extents, by cluster label
         h_cluster_extents = cluster_extent(h_labelled_clusters);
         
         % a map of clusters with in-cluster vertices labelled with their
         % extents
-        h_extent_labelled_clusters = zeros(n_vertices, n_timepionts);
+        h_extent_labelled_clusters = zeros(n_vertices, n_timepoints);
         for cluster_i = 1:numel(h_cluster_extents)
             h_extent_labelled_clusters(h_labelled_clusters == cluster_i) = h_cluster_extents(cluster_i);
         end

@@ -5,10 +5,10 @@ userOptions = slOptions_hidden_layer();
 rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-%dynamic_model_RDM = dynamic_hidden_layer_models('5', 'correlation');
+dynamic_model_RDM = dynamic_hidden_layer_models('7BN', 'correlation', inf);
 %dynamic_model_RDM = mfcc_dRDM('correlation');
 %dynamic_model_RDM = triphone_dRDM('correlation');
-dynamic_model_RDM = feature_dRDM('correlation');
+%dynamic_model_RDM = feature_dRDM('correlation');
 n_lags = numel(dynamic_model_RDM);
 
 MODEL_TIMESTEP_ms = 10;
@@ -161,14 +161,13 @@ rsa.util.prints('Simulating statistial-maps...');
 %     fdr_threshold, ...
 %     userOptions);
 
-[observed_map_paths, corrected_ps] = rfx_tfce( ...
+[observed_map_paths, any_sig] = rfx_tfce( ...
     integratedMapPaths, ...
     n_permutations, ...
     ...% statistic type
     't', ...
     fdr_threshold, ...
     userOptions);
-
 
 
 %% Send an email

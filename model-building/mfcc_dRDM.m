@@ -3,7 +3,7 @@ function dRDM = mfcc_dRDM(distance_type, frame_cap);
     %% Paths
 
     % Change these values
-    input_dir = '/Users/cai/Desktop/scratch/py_out/cepstral-coefficients';
+    input_dir = '/imaging/cw04/CSLB/Analysis_DNN/Models/cepstral-coefficients';
 
 
     %% Load in the features
