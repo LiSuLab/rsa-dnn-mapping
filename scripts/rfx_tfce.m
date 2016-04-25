@@ -94,8 +94,8 @@ function [observed_map_paths, any_sig] = rfx_tfce(map_paths, n_flips, stat, fdr_
         h0_r(flip_i) = max(group_map_sim_tfce_R(:));
     end
     
-    h0.L = sort(h0_l); clear h0_l;
-    h0.R = sort(h0_r); clear h0_r;
+    h0.L = sort(h0_l);
+    h0.R = sort(h0_r);
     
     
     %% Observed maps
@@ -126,16 +126,18 @@ function [observed_map_paths, any_sig] = rfx_tfce(map_paths, n_flips, stat, fdr_
             observed_map_paths.(chi));
         
         % Apply tfce
-        group_maps_observed_tfce.(chi) = tfce(group_maps_observed.(chi));
+        group_maps_observed_tfce.(chi) = tfce( ...
+            group_maps_observed.(chi), ...
+            adjacency_matrix_iwm.(chi));
         
         % Threshold at corrected p-level
         vertex_level_threshold = quantile(h0.(chi), 1-fdr_threshold);
         
         % Threshold to reveal supra-corrected-p-threshold vertices
-        corrected_thresholded_maps.(chi) = zeros(size(group_maps_observed_tfce.(chi)));
-        corrected_thresholded_maps.(chi)(corrected_thresholded_maps.(chi) > vertex_level_threshold) = corrected_thresholded_maps.(chi)(corrected_thresholded_maps.(chi) > vertex_level_threshold);
+        corrected_thresholded_maps.(chi) = group_maps_observed_tfce.(chi);
+        corrected_thresholded_maps.(chi)(corrected_thresholded_maps.(chi) <= vertex_level_threshold) = 0;
         
-        any_sig.(chi) = any(corrected_thresholded_maps.(chi));
+        any_sig.(chi) = any(corrected_thresholded_maps.(chi)(:));
         
         % write out corrected cluster map
         observed_thresholded_map_paths_corr.(chi) = fullfile( ...
