@@ -30,14 +30,14 @@ function map_tfce = tfce(map_raw, adjacency_matrix_iwm)
     %   \int_{h=0}^{h=h_p} extent_{cluster_p}(h)^E h^H dh
     % (Smith & Nichols 2009)
     % as approximated by the descretised sum
-    %   \sum_k (extent_{cluster_p}(k dh))^E (k dh)^H dh
-    % since h = k*dh for appropriately small finite dh, index k
+    %   \sum_h (extent_{cluster_p}(h))^E * h^H * dh
+    % where h = 0, dh, 2*dh, 3*dh, ..., k*dh <= h_p (and (k+1)*dh > h_p)
     
     map_tfce = zeros(n_vertices, n_timepoints);
     
     for h_i = 1:n_heights
         
-        % this h threshokld
+        % this h threshold
         h = heights(h_i);
       
         % the map thresholded a this h
@@ -55,7 +55,8 @@ function map_tfce = tfce(map_raw, adjacency_matrix_iwm)
         % extents
         h_extent_labelled_clusters = zeros(n_vertices, n_timepoints);
         for cluster_i = 1:numel(h_cluster_extents)
-            h_extent_labelled_clusters(h_labelled_clusters == cluster_i) = h_cluster_extents(cluster_i);
+            h_extent_labelled_clusters(h_labelled_clusters == cluster_i) = ...
+                h_cluster_extents(cluster_i);
         end
         
         summand_map = (h_extent_labelled_clusters .^ E) .* (h^H) .* dh;
