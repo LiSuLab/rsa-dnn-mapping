@@ -4,7 +4,7 @@
 %
 % Original author: Li Su 2012-02
 % Updated: Cai Wingfield 2015-11, 2016-03
-function [observed_map_paths, any_sig] = rfx_tfce(map_paths, n_flips, stat, fdr_threshold, userOptions)
+function [observed_map_paths, vertex_level_thresholds] = rfx_tfce(map_paths, n_flips, stat, fdr_thresholds, userOptions)
 
     import rsa.*
     import rsa.meg.*
@@ -59,7 +59,7 @@ function [observed_map_paths, any_sig] = rfx_tfce(map_paths, n_flips, stat, fdr_
     parfor flip_i = 1:n_flips
         
         % Occasional update
-        if mod(flip_i, floor(n_flips/100)) == 0, prints('Flipping coin %d of %d...', flip_i, n_flips); end%if
+        if mod(flip_i, floor(n_flips/10)) == 0, prints('Flipping coin %d of %d...', flip_i, n_flips); end%if
         
         % Flip a coin for each subject
         flips = (2 * coinToss([n_subjects, 1, 1])) - 1;
@@ -130,23 +130,20 @@ function [observed_map_paths, any_sig] = rfx_tfce(map_paths, n_flips, stat, fdr_
             group_maps_observed.(chi), ...
             adjacency_matrix_iwm.(chi));
         
-        % Threshold at corrected p-level
-        vertex_level_threshold = quantile(h0.(chi), 1-fdr_threshold);
-        
-        % Threshold to reveal supra-corrected-p-threshold vertices
-        corrected_thresholded_maps.(chi) = group_maps_observed_tfce.(chi);
-        corrected_thresholded_maps.(chi)(corrected_thresholded_maps.(chi) <= vertex_level_threshold) = 0;
-        
-        any_sig.(chi) = any(corrected_thresholded_maps.(chi)(:));
-        
-        % write out corrected cluster map
-        observed_thresholded_map_paths_corr.(chi) = fullfile( ...
+        % write out tfce map
+        tfce_map_paths.(chi) = fullfile( ...
             maps_dir, ...
-            sprintf('%s_group_%s-map_observed_thresholded_corrected-%sh.stc', userOptions.analysisName, stat, lower(chi)));
+            sprintf('%s_group_%s-map_tfce-%sh.stc', userOptions.analysisName, stat, lower(chi)));
         write_stc_file( ...
             hemi_mesh_stc.(chi), ...
-            corrected_thresholded_maps.(chi), ...
-            observed_thresholded_map_paths_corr.(chi));
+            group_maps_observed_tfce.(chi), ...
+            tfce_map_paths.(chi));
+        
+        % Threshold at corrected p-level
+        vertex_level_thresholds.(chi) = nan(size(fdr_thresholds));
+        for i = 1:numel(fdr_thresholds)
+            vertex_level_thresholds.(chi)(i) = quantile(h0.(chi), 1-fdr_thresholds(i));
+        end
     
     end
 
