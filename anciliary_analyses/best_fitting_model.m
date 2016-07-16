@@ -50,6 +50,15 @@ function [  ] = best_fitting_model()
         write_stc_file(stc_metadata, max_val_is, max_vals_path);
         write_stc_snapshot(stc_metadata, max_val_overall_is, max_vals_overall_path);
         
+        %% Write out individual model-masked maps
+        for model_i = 1:numel(models)
+           masked_vals = zeros(size(max_val_is));
+           masked_vals(max_val_is == model_i) = 1;
+           
+           masked_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'model_%d_%s_masked-%sh.stc'), model_i, model, lower(chi));
+           write_stc_file(stc_metadata, masked_vals, masked_path);
+        end
+        
     end
     
 end
