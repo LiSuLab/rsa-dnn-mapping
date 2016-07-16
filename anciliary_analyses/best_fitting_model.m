@@ -38,18 +38,19 @@ function [  ] = best_fitting_model()
         %% Pick best models
         
         % Best models at each vertex,timepoint
-        max_vals = max(all_model_stack, [], 3);
+        [max_vals, max_val_is] = max(all_model_stack, [], 3);
         
         % Best model over all time at each vertex
-        max_vals_overall = max(max_vals, [], 2);
+        [max_vals_overall, max_val_overall_ts] = max(max_vals, [], 2);
+        max_val_overall_is = max_val_is(:, max_val_overall_ts);
 
         %% Write out maps
         
         max_vals_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model_each_timepoint_%sh.stc'), lower(chi));
         max_vals_overall_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model_overall_%sh.stc'), lower(chi));
         
-        write_stc_file(stc_metadata, max_vals, max_vals_path);
-        write_stc_snapshot(stc_metadata, max_vals_overall, max_vals_overall_path);
+        write_stc_file(stc_metadata, max_val_is, max_vals_path);
+        write_stc_snapshot(stc_metadata, max_val_overall_is, max_vals_overall_path);
         
     end
     
