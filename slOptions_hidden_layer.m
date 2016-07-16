@@ -8,7 +8,7 @@ function userOptions = slOptions_hidden_layer()
 userOptions.analysisName = 'lexpro-bn-sl';
 
 % This is the root directory of the project.
-userOptions.rootPath = '/imaging/cw04/CSLB/Analysis_DNN/CWD_win25_language_10242';
+userOptions.rootPath = '/imaging/cw04/CSLB/Lexpro/Analysis_DNN/CWD_win25_language_10242';
 
 % The path leading to where the scans are stored (not including subject-specific identifiers).
 % "[[subjectName]]" should be used as a placeholder to denote an entry in userOptions.subjectNames

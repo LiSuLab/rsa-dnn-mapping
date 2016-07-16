@@ -5,10 +5,12 @@ userOptions = slOptions_hidden_layer();
 rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-dynamic_model_RDM = dynamic_hidden_layer_models('7BN', 'correlation', inf);
-%dynamic_model_RDM = mfcc_dRDM('correlation');
-%dynamic_model_RDM = triphone_dRDM('correlation');
-%dynamic_model_RDM = feature_dRDM('correlation');
+dynamic_model_RDM = dynamic_hidden_layer_models('4', 'correlation', inf);
+%dynamic_model_RDM = mfcc_dRDM('correlation', inf);
+%dynamic_model_RDM = triphone_dRDM('correlation', inf);
+%dynamic_model_RDM = feature_dRDM('correlation', 27);
+%dynamic_model_RDM = rsa.util.directLoad('/imaging/cw04/CSLB/Lexpro/Analysis_DNN/Models/lexpro_filterbank_model.mat'); dynamic_model_RDM = dynamic_model_RDM(1:27);
+
 n_lags = numel(dynamic_model_RDM);
 
 MODEL_TIMESTEP_ms = 10;
@@ -69,18 +71,6 @@ rsa.util.prints( ...
     slMasks, ...
     adjacencyMatrix, ...
     STCMetadatas, ...
-    userOptions);
-
-
-%% %%%%%
-rsa.util.prints( ...
-    'Averaging searchlight RDMs...');
-%%%%%%%%
-
-averageRDMPaths = averageSlRDMs( ...
-    RDMsPaths, ...
-    slMasks, ...
-    lexproBetaCorrespondence(), ...
     userOptions);
 
 
@@ -147,7 +137,7 @@ rsa.util.prints(...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %cluster_forming_threshold = 0.01;
-fdr_threshold = 0.05;
+fdr_thresholds = [0.05, 0.01, 0.001, 0.0001];
 n_permutations = 1000;
 
 rsa.util.prints('Simulating statistial-maps...');
@@ -161,13 +151,15 @@ rsa.util.prints('Simulating statistial-maps...');
 %     fdr_threshold, ...
 %     userOptions);
 
-[observed_map_paths, any_sig] = rfx_tfce( ...
+[observed_map_paths, vertex_level_thresholds] = rfx_tfce( ...
     integratedMapPaths, ...
     n_permutations, ...
     ...% statistic type
     't', ...
-    fdr_threshold, ...
+    fdr_thresholds, ...
     userOptions);
+
+rsa.util.display_singleton_struct(vertex_level_thresholds);
 
 
 %% Send an email

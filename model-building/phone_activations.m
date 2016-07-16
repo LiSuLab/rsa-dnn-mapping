@@ -2,7 +2,7 @@
 % each word.
 function [phone_models] = phone_activations()
     
-    load_dir = '/Users/cai/Desktop/scratch/py_out/';
+    load_dir = '/imaging/cw04/CSLB/Lexpro/Analysis_DNN/Models/';
 
     segmentations = load(fullfile(load_dir, 'triphone_boundaries.mat'));
     segmentations = orderfields(segmentations);
