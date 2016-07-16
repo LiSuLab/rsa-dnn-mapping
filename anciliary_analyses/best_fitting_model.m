@@ -9,13 +9,12 @@ function [  ] = best_fitting_model()
         'L2', ...
         'L3', ...
         'L6', ...
-        'L7BN', ...
-        'Phon', ...
-        'Feature'};
+        'BN7', ...
+        'triphone', ...
+        'feature'};
 
-    % TODO: put correct paths template in here
-    maps_path = '/imaging/cw04/CSLB/Lexpro/Analysis_NN_mapping/CWD_1024_something/';
-    all_vals_template_template = fullfile(maps_path, 'Maps_%s/tcfe_corrected_unthresholded-%sh.stc');
+    maps_base_path = '/imaging/cw04/CSLB/Lexpro/Analysis_NN_mapping/CWD_win25_language_10242/';
+    all_vals_template_template = fullfile(maps_base_path, 'Maps_%s/lexpro-bn-sl_group_t-map_tfce-%sh.stc');
     
     for chi = 'LR'
         for model_i = 1:nume(models_to_chose_from)
@@ -46,12 +45,11 @@ function [  ] = best_fitting_model()
 
         %% Write out maps
         
-        max_vals_path = sprintf(fullfile(maps_path, 'best_model_each_timepoint_%sh.stc'), lower(chi));
-        max_vals_overall_path = sprintf(fullfile(maps_path, 'best_model_overall_%sh.stc'), lower(chi));
+        max_vals_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model_each_timepoint_%sh.stc'), lower(chi));
+        max_vals_overall_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model_overall_%sh.stc'), lower(chi));
         
-        % TODO: argument order
         write_stc_file(stc_metadata, max_vals, max_vals_path);
-        write_stc_snapshot(stc_metadata, max_vals_overall_path);
+        write_stc_snapshot(stc_metadata, max_vals_overall, max_vals_overall_path);
         
     end
     
