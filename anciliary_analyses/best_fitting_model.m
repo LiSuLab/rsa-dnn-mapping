@@ -2,34 +2,45 @@ function [  ] = best_fitting_model()
 
     import rsa.*
     import rsa.meg.*
+    import rsa.util.*
     
     % L: p < 0.001
-    % R: p < 0.0001 %0.001
+    % R: p < 0.001
+    % % R: p < 0.0001
     vertex_level_thresholds = struct();
-    %1
+    
     vertex_level_thresholds.FBK.L      = 1370.5;
-    vertex_level_thresholds.FBK.R      = 1859.1;%1731.9;
-    %2
+    vertex_level_thresholds.FBK.R      = 1731.9;
+    %vertex_level_thresholds.FBK.R      = 1859.1;
+    
     vertex_level_thresholds.L2.L       = 1502.3;
-    vertex_level_thresholds.L2.R       = 1691.2;%1654.8;
-    %3
+    vertex_level_thresholds.L2.R       = 1654.8;
+    %vertex_level_thresholds.L2.R       = 1691.2;
+    
     vertex_level_thresholds.L3.L       = 1238.2;
-    vertex_level_thresholds.L3.R       = 1717.0;%1696.2;
-    %4
+    vertex_level_thresholds.L3.R       = 1696.2;
+    %vertex_level_thresholds.L3.R       = 1717.0;
+    
     vertex_level_thresholds.L4.L       = 1161.6;
-    vertex_level_thresholds.L4.R       = 2163.1;%1926.4;
-    %5
+    vertex_level_thresholds.L4.R       = 1926.4;
+    %vertex_level_thresholds.L4.R       = 2163.1;
+    
     vertex_level_thresholds.L6.L       = 1137.6;
-    vertex_level_thresholds.L6.R       = 1951.3;%1852.4;
-    %6
+    vertex_level_thresholds.L6.R       = 1852.4;
+    %vertex_level_thresholds.L6.R       = 1951.3;
+    
     vertex_level_thresholds.BN7.L      = 1068.3;
-    vertex_level_thresholds.BN7.R      = 1860.2;%1860.2;
-    %7
+    vertex_level_thresholds.BN7.R      = 1860.2;
+    %vertex_level_thresholds.BN7.R      = 1860.2;
+    
     vertex_level_thresholds.triphone.L = 1435.6;
-    vertex_level_thresholds.triphone.R = 2253.7;%2041.1;
-    %8
-    vertex_level_thresholds.feature.L  = 1186.9;
-    vertex_level_thresholds.feature.R  = 1239.1;%1239.1;
+    vertex_level_thresholds.triphone.R = 2041.1;
+    %vertex_level_thresholds.triphone.R = 2253.7;
+    
+    % This ends up overwhelming everything else on the right
+    %vertex_level_thresholds.feature.L  = 1186.9;
+    %vertex_level_thresholds.feature.R      = 1239.1;
+    %%vertex_level_thresholds.feature.R  = 1239.1;
 
     models_to_chose_from = fieldnames(vertex_level_thresholds);
 
@@ -92,8 +103,28 @@ function [  ] = best_fitting_model()
             model_masked_vals = zeros(size(max_val_is));
             model_masked_vals(max_val_is == model_i) = 1;
            
-            masked_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'model_%d_%s-%sh.stc'), model_i, model, lower(chi));
+            masked_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'model_%s-%sh.stc'), model, lower(chi));
             write_stc_file(stc_metadata, model_masked_vals, masked_path);
+            
+            %% And display the numbers!
+            
+            % For all sig models
+            extent_count = zeros(1, n_timepoints);
+            for t = 1:n_timepoints
+               vertices_this_timepoint = all_model_stack(:, t, model_i);
+               extent_count(t) = sum(vertices_this_timepoint(:) > 0);
+            end
+            count_string = sprintf('%d, ', extent_count);
+            prints('%s-h SIG model %d %s: [%s]', chi, model_i, model, count_string);
+            
+            % For the best models
+            extent_count = zeros(1, n_timepoints);
+            for t = 1:n_timepoints
+                vertices_this_timepoint = model_masked_vals(:, t);
+                extent_count(t) = sum(vertices_this_timepoint(:));
+            end
+            count_string = sprintf('%d, ', extent_count);
+            prints('%s-h BEST model %d %s: [%s]', chi, model_i, model, count_string);
             
         end
     end
