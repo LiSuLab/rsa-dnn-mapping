@@ -4,31 +4,32 @@ function [  ] = best_fitting_model()
     import rsa.meg.*
     
     % L: p < 0.001
+    % R: p < 0.0001 %0.001
     vertex_level_thresholds = struct();
     %1
-    vertex_level_thresholds.FBK.L      = [1370.5];
-    vertex_level_thresholds.FBK.R      = [1731.9];
+    vertex_level_thresholds.FBK.L      = 1370.5;
+    vertex_level_thresholds.FBK.R      = 1859.1;%1731.9;
     %2
-    vertex_level_thresholds.L2.L       = [1502.3];
-    vertex_level_thresholds.L2.R       = [1654.8];
+    vertex_level_thresholds.L2.L       = 1502.3;
+    vertex_level_thresholds.L2.R       = 1691.2;%1654.8;
     %3
-    vertex_level_thresholds.L3.L       = [1238.2];
-    vertex_level_thresholds.L3.R       = [1696.2];
+    vertex_level_thresholds.L3.L       = 1238.2;
+    vertex_level_thresholds.L3.R       = 1717.0;%1696.2;
     %4
     vertex_level_thresholds.L4.L       = 1161.6;
-    vertex_level_thresholds.L4.R       = 1926.4;
+    vertex_level_thresholds.L4.R       = 2163.1;%1926.4;
     %5
-    vertex_level_thresholds.L6.L       = [1137.6];
-    vertex_level_thresholds.L6.R       = [1852.4];
+    vertex_level_thresholds.L6.L       = 1137.6;
+    vertex_level_thresholds.L6.R       = 1951.3;%1852.4;
     %6
-    vertex_level_thresholds.BN7.L      = [1068.3];
-    vertex_level_thresholds.BN7.R      = [1860.2];
+    vertex_level_thresholds.BN7.L      = 1068.3;
+    vertex_level_thresholds.BN7.R      = 1860.2;%1860.2;
     %7
-    vertex_level_thresholds.triphone.L = [1435.6];
-    vertex_level_thresholds.triphone.R = [2041.1];
+    vertex_level_thresholds.triphone.L = 1435.6;
+    vertex_level_thresholds.triphone.R = 2253.7;%2041.1;
     %8
-    vertex_level_thresholds.feature.L  = [1186.9];
-    vertex_level_thresholds.feature.R  = [1239.1];
+    vertex_level_thresholds.feature.L  = 1186.9;
+    vertex_level_thresholds.feature.R  = 1239.1;%1239.1;
 
     models_to_chose_from = fieldnames(vertex_level_thresholds);
 
