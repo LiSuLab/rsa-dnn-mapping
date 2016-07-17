@@ -2,15 +2,35 @@ function [  ] = best_fitting_model()
 
     import rsa.*
     import rsa.meg.*
+    
+    % L: p < 0.001
+    vertex_level_thresholds = struct();
+    %1
+    vertex_level_thresholds.FBK.L      = [1370.5];
+    vertex_level_thresholds.FBK.R      = [1731.9];
+    %2
+    vertex_level_thresholds.L2.L       = [1502.3];
+    vertex_level_thresholds.L2.R       = [1654.8];
+    %3
+    vertex_level_thresholds.L3.L       = [1238.2];
+    vertex_level_thresholds.L3.R       = [1696.2];
+    %4
+    vertex_level_thresholds.L4.L       = 1161.6;
+    vertex_level_thresholds.L4.R       = 1926.4;
+    %5
+    vertex_level_thresholds.L6.L       = [1137.6];
+    vertex_level_thresholds.L6.R       = [1852.4];
+    %6
+    vertex_level_thresholds.BN7.L      = [1068.3];
+    vertex_level_thresholds.BN7.R      = [1860.2];
+    %7
+    vertex_level_thresholds.triphone.L = [1435.6];
+    vertex_level_thresholds.triphone.R = [2041.1];
+    %8
+    vertex_level_thresholds.feature.L  = [1186.9];
+    vertex_level_thresholds.feature.R  = [1239.1];
 
-    models_to_chose_from = { ...
-        'FBK', ...
-        'L2', ...
-        'L3', ...
-        'L6', ...
-        'BN7', ...
-        'triphone', ...
-        'feature'};
+    models_to_chose_from = fieldnames(vertex_level_thresholds);
 
     maps_base_path = '/imaging/cw04/CSLB/Lexpro/Analysis_DNN/CWD_win25_language_10242/';
     all_vals_template_template = fullfile(maps_base_path, 'Maps_%s/lexpro-bn-sl_group_t-map_tfce-%sh.stc');
@@ -30,35 +50,51 @@ function [  ] = best_fitting_model()
                all_model_stack = zeros(n_vertices, n_timepoints, numel(models_to_chose_from));
            end
            
-           all_model_stack(:, :, model_i) = stc_metadata.data;
+           data_mesh = stc_metadata.data;
+           
+           % Theshold
+           vlt = vertex_level_thresholds.(model).(chi);
+           data_mesh(data_mesh < vlt) = 0;
+           
+           all_model_stack(:, :, model_i) = data_mesh;
            
         end
        
         %% Pick best models
         
-        % Best models at each vertex,timepoint
-        [max_vals, max_val_is] = max(all_model_stack, [], 3);
+        % There's probably a smart way to do this, but I'm just going to do
+        % it in a dumb loop so I can get it done.
         
-        % Best model over time-averaged values at each vertex
-        [max_vals_overall, max_val_overall_is] = max(squeeze(mean(all_model_stack, 2)), [], 2);
-
-        %% Write out maps
+        max_val_is = zeros(n_vertices, n_timepoints);
         
-        max_vals_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model_each_timepoint-%sh.stc'), lower(chi));
-        max_vals_overall_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model_overall-%sh.stc'), lower(chi));
-        
-        write_stc_file(stc_metadata, max_val_is, max_vals_path);
-        write_stc_snapshot(stc_metadata, max_val_overall_is, max_vals_overall_path);
-        
-        %% Write out individual model-masked maps
-        for model_i = 1:numel(models)
-           masked_vals = zeros(size(max_val_is));
-           masked_vals(max_val_is == model_i) = 1;
-           
-           masked_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'model_%d_%s_masked-%sh.stc'), model_i, model, lower(chi));
-           write_stc_file(stc_metadata, masked_vals, masked_path);
+        for v = 1:n_vertices
+            for t = 1:n_timepoints
+                model_fits = squeeze(all_model_stack(v, t, :));
+                
+                if sum(model_fits(:)) == 0
+                    % No models fit here, so leave it zero
+                else
+                    [max_val, max_val_is(v, t)] = max(model_fits);
+                end
+            end
         end
         
+        %% Write out maps
+        
+        max_vals_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model-%sh.stc'), lower(chi));
+        write_stc_file(stc_metadata, max_val_is, max_vals_path);
+        
+        %% Write out individual model-masked maps
+        for model_i = 1:numel(models_to_chose_from)
+            model = models_to_chose_from{model_i};
+            
+            model_masked_vals = zeros(size(max_val_is));
+            model_masked_vals(max_val_is == model_i) = 1;
+           
+            masked_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'model_%d_%s-%sh.stc'), model_i, model, lower(chi));
+            write_stc_file(stc_metadata, model_masked_vals, masked_path);
+            
+        end
     end
     
 end
