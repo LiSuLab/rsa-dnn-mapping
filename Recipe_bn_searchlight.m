@@ -5,7 +5,7 @@ userOptions = slOptions_hidden_layer();
 rsa.util.prints('Running toolbox for %s', userOptions.analysisName);
 %%%%%%%%%%%%%%%%%%%%%%
 
-dynamic_model_RDM = dynamic_hidden_layer_models('4', 'correlation', inf);
+dynamic_model_RDM = dynamic_hidden_layer_models('5', 'correlation', inf);
 %dynamic_model_RDM = mfcc_dRDM('correlation', inf);
 %dynamic_model_RDM = triphone_dRDM('correlation', inf);
 %dynamic_model_RDM = feature_dRDM('correlation', 27);
