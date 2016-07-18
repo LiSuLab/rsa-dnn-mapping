@@ -35,6 +35,9 @@ function [  ] = best_fitting_model()
     % 4: p < 0.0001
     threshold_level = 3;
     
+    % Normalise each model's map by the maximum value
+    % DISPLAY PURPOSES ONLY
+    normalise = true;
 
     models_to_chose_from = fieldnames(vertex_level_thresholds);
 
@@ -61,6 +64,10 @@ function [  ] = best_fitting_model()
            % Theshold
            vlt = vertex_level_thresholds.(model).(chi)(threshold_level);
            data_mesh(data_mesh < vlt) = 0;
+           
+           if normalise
+              data_mesh = data_mesh ./ max(data_mesh(:)); 
+           end
            
            all_model_stack(:, :, model_i) = data_mesh;
            
