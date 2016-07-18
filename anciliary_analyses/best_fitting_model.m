@@ -4,47 +4,37 @@ function [  ] = best_fitting_model()
     import rsa.meg.*
     import rsa.util.*
     
-    % L: p < 0.001
-    % R: p < 0.001
-    % % R: p < 0.0001
-    vertex_level_thresholds = struct();
+    %                                p <  0.05   0.01   0.001   0.0001
+    vertex_level_thresholds.FBK.L      = [386.6, 662.8, 1370.5, 1488.3];
+    vertex_level_thresholds.FBK.R      = [402.0, 973.5, 1731.9, 1859.1];
     
-    vertex_level_thresholds.FBK.L      = 1370.5;
-    vertex_level_thresholds.FBK.R      = 1731.9;
-    %vertex_level_thresholds.FBK.R      = 1859.1;
+    vertex_level_thresholds.L2.L       = [447.9, 746.9, 1502.3, 1526.0];
+    vertex_level_thresholds.L2.R       = [489.1, 1107.6, 1654.8, 1691.2];
     
-    vertex_level_thresholds.L2.L       = 1502.3;
-    vertex_level_thresholds.L2.R       = 1654.8;
-    %vertex_level_thresholds.L2.R       = 1691.2;
+    vertex_level_thresholds.L3.L       = [390.8, 744.4, 1238.2, 1240.1];
+    vertex_level_thresholds.L3.R       = [446.5, 1152.6, 1696.2, 1717.0];
     
-    vertex_level_thresholds.L3.L       = 1238.2;
-    vertex_level_thresholds.L3.R       = 1696.2;
-    %vertex_level_thresholds.L3.R       = 1717.0;
+    vertex_level_thresholds.L4.L       = [418.1, 723.6, 1161.6, 1197.4];
+    vertex_level_thresholds.L4.R       = [472.0, 925.5, 1926.4, 2163.1];
     
-    vertex_level_thresholds.L4.L       = 1161.6;
-    vertex_level_thresholds.L4.R       = 1926.4;
-    %vertex_level_thresholds.L4.R       = 2163.1;
+    vertex_level_thresholds.L5.L       = [449.6, 721.9, 1132.9, 1185.3];
+    vertex_level_thresholds.L5.R       = [505.0, 906.8, 2008.4, 2044.4];
     
-    vertex_level_thresholds.L5.L       = 1132.9;
-    vertex_level_thresholds.L5.R       = 2008.4;
-    %vertex_level_thresholds.L5.R       = 2044.4;
+    vertex_level_thresholds.L6.L       = [402.1, 662.6, 1137.6, 1251.2];
+    vertex_level_thresholds.L6.R       = [491.3, 1058.8, 1852.4, 1951.3];
     
-    vertex_level_thresholds.L6.L       = 1137.6;
-    vertex_level_thresholds.L6.R       = 1852.4;
-    %vertex_level_thresholds.L6.R       = 1951.3;
+    vertex_level_thresholds.BN7.L      = [414.7, 732.7, 1068.3, 1110.5];
+    vertex_level_thresholds.BN7.R      = [463.0, 852.3, 1860.2, 1860.2];
     
-    vertex_level_thresholds.BN7.L      = 1068.3;
-    vertex_level_thresholds.BN7.R      = 1860.2;
-    %vertex_level_thresholds.BN7.R      = 1860.2;
+    %vertex_level_thresholds.triphone.L = [422.9, 727.3, 1435.6, 1719.4];
+    %vertex_level_thresholds.triphone.R = [472.9, 685.1, 2041.1, 2253.7];
     
-    vertex_level_thresholds.triphone.L = 1435.6;
-    vertex_level_thresholds.triphone.R = 2041.1;
-    %vertex_level_thresholds.triphone.R = 2253.7;
+    % 1: p < 0.05
+    % 2: p < 0.01
+    % 3: p < 0.001
+    % 4: p < 0.0001
+    threshold_level = 3;
     
-    % This ends up overwhelming everything else on the right
-    %vertex_level_thresholds.feature.L  = 1186.9;
-    %vertex_level_thresholds.feature.R      = 1239.1;
-    %%vertex_level_thresholds.feature.R  = 1239.1;
 
     models_to_chose_from = fieldnames(vertex_level_thresholds);
 
@@ -69,7 +59,7 @@ function [  ] = best_fitting_model()
            data_mesh = stc_metadata.data;
            
            % Theshold
-           vlt = vertex_level_thresholds.(model).(chi);
+           vlt = vertex_level_thresholds.(model).(chi)(threshold_level);
            data_mesh(data_mesh < vlt) = 0;
            
            all_model_stack(:, :, model_i) = data_mesh;
