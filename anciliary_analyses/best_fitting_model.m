@@ -25,6 +25,10 @@ function [  ] = best_fitting_model()
     vertex_level_thresholds.L4.R       = 1926.4;
     %vertex_level_thresholds.L4.R       = 2163.1;
     
+    vertex_level_thresholds.L5.L       = 1132.9;
+    vertex_level_thresholds.L5.R       = 2008.4;
+    %vertex_level_thresholds.L5.R       = 2044.4;
+    
     vertex_level_thresholds.L6.L       = 1137.6;
     vertex_level_thresholds.L6.R       = 1852.4;
     %vertex_level_thresholds.L6.R       = 1951.3;
