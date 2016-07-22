@@ -29,11 +29,12 @@ function [  ] = best_fitting_model()
     %vertex_level_thresholds.triphone.L = [422.9, 727.3, 1435.6, 1719.4];
     %vertex_level_thresholds.triphone.R = [472.9, 685.1, 2041.1, 2253.7];
     
+    % 0: no threshold
     % 1: p < 0.05
     % 2: p < 0.01
     % 3: p < 0.001
     % 4: p < 0.0001
-    threshold_level = 3;
+    threshold_level = 0;
     
     % Normalise each model's map by the maximum value
     % DISPLAY PURPOSES ONLY
@@ -46,30 +47,47 @@ function [  ] = best_fitting_model()
     
     for chi = 'LR'
         for model_i = 1:numel(models_to_chose_from)
-           model = models_to_chose_from{model_i};
-           
-           %% Load model and insert into stack
-           
-           this_model_path = sprintf(all_vals_template_template, model, lower(chi));
-           
-           stc_metadata = mne_read_stc_file1(this_model_path);
-           
-           if model_i == 1
+            model = models_to_chose_from{model_i};
+
+            %% Load model and insert into stack
+
+            this_model_path = sprintf(all_vals_template_template, model, lower(chi));
+
+            stc_metadata = mne_read_stc_file1(this_model_path);
+
+            if model_i == 1
                [n_vertices, n_timepoints] = size(stc_metadata.data);
                all_model_stack = zeros(n_vertices, n_timepoints, numel(models_to_chose_from));
-           end
+            end
+
+            data_mesh = stc_metadata.data;
+
+            % Theshold
+            if threshold_level
+                vlt = vertex_level_thresholds.(model).(chi)(threshold_level);
+            else
+                vlt = -inf;
+            end
+            data_mesh(data_mesh < vlt) = 0;
+
+            if normalise && (sum(data_mesh(:)) > 0)
+               max_val = max(data_mesh(:));
+               data_mesh = data_mesh ./ max_val; 
+            end
+
+            all_model_stack(:, :, model_i) = data_mesh;
            
-           data_mesh = stc_metadata.data;
-           
-           % Theshold
-           vlt = vertex_level_thresholds.(model).(chi)(threshold_level);
-           data_mesh(data_mesh < vlt) = 0;
-           
-           if normalise
-              data_mesh = data_mesh ./ max(data_mesh(:)); 
-           end
-           
-           all_model_stack(:, :, model_i) = data_mesh;
+            
+            %% And display the numbers!
+
+            % For all sig models
+            extent_count = zeros(1, n_timepoints);
+            for t = 1:n_timepoints
+               vertices_this_timepoint = all_model_stack(:, t, model_i);
+               extent_count(t) = sum(vertices_this_timepoint(:) > 0);
+            end
+            count_string = sprintf('%d, ', extent_count);
+            prints('%s-h SIG model %d %s: [%s]', chi, model_i, model, count_string);
            
         end
        
@@ -92,43 +110,41 @@ function [  ] = best_fitting_model()
             end
         end
         
+        %% Find spatial peaks
+        
+        peak_locations = zeros(n_vertices, n_timepoints-2, numel(models_to_chose_from));
+        for model_i = 1:numel(models_to_chose_from)
+            model = models_to_chose_from{model_i};
+            
+            % cut off early peak for display purposes
+            map_this_model = all_model_stack(:, 3:end, model_i);
+            peak_height = max(map_this_model(:));
+            peak_locations(:, :, model_i) = (map_this_model == peak_height);
+        end
+        
+        % Collapse over time
+        peak_locations = squeeze(sum(peak_locations, 2));
+        
         %% Write out maps
         
         max_vals_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'best_model-%sh.stc'), lower(chi));
         write_stc_file(stc_metadata, max_val_is, max_vals_path);
         
-        %% Write out individual model-masked maps
         for model_i = 1:numel(models_to_chose_from)
             model = models_to_chose_from{model_i};
             
+            %% Write out individual model-masked maps
             model_masked_vals = zeros(size(max_val_is));
             model_masked_vals(max_val_is == model_i) = 1;
            
             masked_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'model_%s-%sh.stc'), model, lower(chi));
             write_stc_file(stc_metadata, model_masked_vals, masked_path);
             
-            %% And display the numbers!
-            
-            % For all sig models
-            extent_count = zeros(1, n_timepoints);
-            for t = 1:n_timepoints
-               vertices_this_timepoint = all_model_stack(:, t, model_i);
-               extent_count(t) = sum(vertices_this_timepoint(:) > 0);
-            end
-            count_string = sprintf('%d, ', extent_count);
-            prints('%s-h SIG model %d %s: [%s]', chi, model_i, model, count_string);
-            
-            % For the best models
-            extent_count = zeros(1, n_timepoints);
-            for t = 1:n_timepoints
-                vertices_this_timepoint = model_masked_vals(:, t);
-                extent_count(t) = sum(vertices_this_timepoint(:));
-            end
-            count_string = sprintf('%d, ', extent_count);
-            prints('%s-h BEST model %d %s: [%s]', chi, model_i, model, count_string);
+            %% Write out peak locations
+            peak_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'peak_model_%s-%sh.stc'), model, lower(chi));
+            write_stc_snapshot(stc_metadata, peak_locations(:, model_i), peak_path);
             
         end
     end
     
 end
-
