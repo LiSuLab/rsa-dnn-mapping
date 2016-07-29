@@ -34,7 +34,7 @@ function [  ] = best_fitting_model()
     % 2: p < 0.01
     % 3: p < 0.001
     % 4: p < 0.0001
-    threshold_level = 2;
+    threshold_level = 3;
     
     % Normalise each model's map by the maximum value
     % DISPLAY PURPOSES ONLY
@@ -44,7 +44,13 @@ function [  ] = best_fitting_model()
     n_models = numel(models_to_chose_from);
 
     maps_base_path = '/imaging/cw04/CSLB/Lexpro/Analysis_DNN/CWD_win25_language_10242/';
-    all_vals_template_template = fullfile(maps_base_path, 'Maps_%s/lexpro-bn-sl_group_t-map_tfce-%sh.stc');
+    
+    tfce_vals_template_template = fullfile( ...
+        maps_base_path, ...
+        'Maps_%s/lexpro-bn-sl_group_t-map_tfce-%sh.stc');
+    t_vals_template_template    = fullfile( ...
+        maps_base_path, ...
+        'Maps_%s/lexpro-bn-sl_group_t-map_observed-%sh.stc');
     
     for chi = 'LR'
         for model_i = 1:numel(models_to_chose_from)
@@ -52,17 +58,23 @@ function [  ] = best_fitting_model()
 
             %% Load model and insert into stack
 
-            this_model_path = sprintf(all_vals_template_template, model, lower(chi));
+            this_model_path_tfce = sprintf(tfce_vals_template_template, model, lower(chi));
+            this_model_path_t    = sprintf(t_vals_template_template, model, lower(chi));
 
-            stc_metadata = mne_read_stc_file1(this_model_path);
+            stc_metadata = mne_read_stc_file1(this_model_path_tfce);
+            stc_t        = mne_read_stc_file1(this_model_path_t);
 
             if model_i == 1
                [n_vertices, n_timepoints] = size(stc_metadata.data);
-               all_model_stack = zeros(n_vertices, n_timepoints, n_models);
+               
+               all_model_stack_tfce = zeros(n_vertices, n_timepoints, n_models);
+               all_model_stack_t    = zeros(n_vertices, n_timepoints, n_models);
+               
                thresholded_model_stack = zeros(n_vertices, n_timepoints, n_models);
             end
 
-            data_mesh = stc_metadata.data;
+            data_mesh_tfce = stc_metadata.data;
+            data_mesh_t    = stc_t.data;
 
             % Theshold
             if threshold_level
@@ -70,7 +82,7 @@ function [  ] = best_fitting_model()
             else
                 vlt = -inf;
             end
-            thresholded_data_mesh = data_mesh;
+            thresholded_data_mesh = data_mesh_tfce;
             thresholded_data_mesh(thresholded_data_mesh < vlt) = 0;
 
             if normalise && (sum(thresholded_data_mesh(:)) > 0)
@@ -78,19 +90,21 @@ function [  ] = best_fitting_model()
                thresholded_data_mesh = thresholded_data_mesh ./ max_val; 
             end
 
-            all_model_stack(:, :, model_i) = data_mesh;
+            all_model_stack_tfce(:, :, model_i) = data_mesh_tfce;
             thresholded_model_stack(:, :, model_i) = thresholded_data_mesh;
+            
+            all_model_stack_t(:, :, model_i) = data_mesh_t;
            
             
             %% And display the numbers!
             
             % Peak values
-            peak_values = zeros(1, n_timepoints);
+            peak_values_tfce = zeros(1, n_timepoints);
             for t = 1:n_timepoints
-               values_this_timepoint = all_model_stack(:, t, model_i);
-               peak_values(t) = max(values_this_timepoint(:));
+               values_this_timepoint = all_model_stack_tfce(:, t, model_i);
+               peak_values_tfce(t) = max(values_this_timepoint(:));
             end
-            peak_string = sprintf('%d, ', peak_values);
+            peak_string = sprintf('%d, ', peak_values_tfce);
             prints('%s %s peak: [%s]', chi, model, peak_string);
 
             % supra-threshold cluster extents
@@ -125,18 +139,23 @@ function [  ] = best_fitting_model()
         
         %% Find spatial peaks
         
-        peak_locations = zeros(n_vertices, n_timepoints-2, numel(models_to_chose_from));
+        peak_locations_tfce = zeros(n_vertices, n_timepoints-16, numel(models_to_chose_from));
+        peak_locations_t    = zeros(n_vertices, n_timepoints-16, numel(models_to_chose_from));
         for model_i = 1:numel(models_to_chose_from)
-            model = models_to_chose_from{model_i};
             
-            % cut off early peak for display purposes
-            map_this_model = all_model_stack(:, 3:end, model_i);
-            peak_height = max(map_this_model(:));
-            peak_locations(:, :, model_i) = (map_this_model == peak_height);
+            %                                             17:end for second peak
+            tfce_map_this_model = all_model_stack_tfce(:, 17:end, model_i);
+            peak_height = max(tfce_map_this_model(:));
+            peak_locations_tfce(:, :, model_i) = (tfce_map_this_model == peak_height);
+            
+            t_map_this_model = all_model_stack_t(:, 17:end, model_i);
+            peak_height = max(t_map_this_model(:));
+            peak_locations_t(:, :, model_i) = (t_map_this_model == peak_height);
         end
         
         % Collapse over time
-        peak_locations = squeeze(sum(peak_locations, 2));
+        peak_locations_tfce = squeeze(sum(peak_locations_tfce, 2));
+        peak_locations_t    = squeeze(sum(peak_locations_t, 2));
         
         %% Write out maps
         
@@ -154,8 +173,11 @@ function [  ] = best_fitting_model()
             write_stc_file(stc_metadata, model_masked_vals, masked_path);
             
             %% Write out peak locations
-            peak_path = sprintf(fullfile(maps_base_path, 'Summary_maps', 'peak_model_%s-%sh.stc'), model, lower(chi));
-            write_stc_snapshot(stc_metadata, peak_locations(:, model_i), peak_path);
+            peak_path_tfce = sprintf(fullfile(maps_base_path, 'Summary_maps', 'peak_model_%s_tfce-%sh.stc'), model, lower(chi));
+            write_stc_snapshot(stc_metadata, peak_locations_tfce(:, model_i), peak_path_tfce);
+            
+            peak_path_t = sprintf(fullfile(maps_base_path, 'Summary_maps', 'peak_model_%s_t-%sh.stc'), model, lower(chi));
+            write_stc_snapshot(stc_metadata, peak_locations_t(:, model_i), peak_path_t);
             
         end
     end
