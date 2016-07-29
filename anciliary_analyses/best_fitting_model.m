@@ -34,13 +34,14 @@ function [  ] = best_fitting_model()
     % 2: p < 0.01
     % 3: p < 0.001
     % 4: p < 0.0001
-    threshold_level = 0;
+    threshold_level = 2;
     
     % Normalise each model's map by the maximum value
     % DISPLAY PURPOSES ONLY
     normalise = true;
 
     models_to_chose_from = fieldnames(vertex_level_thresholds);
+    n_models = numel(models_to_chose_from);
 
     maps_base_path = '/imaging/cw04/CSLB/Lexpro/Analysis_DNN/CWD_win25_language_10242/';
     all_vals_template_template = fullfile(maps_base_path, 'Maps_%s/lexpro-bn-sl_group_t-map_tfce-%sh.stc');
@@ -57,7 +58,8 @@ function [  ] = best_fitting_model()
 
             if model_i == 1
                [n_vertices, n_timepoints] = size(stc_metadata.data);
-               all_model_stack = zeros(n_vertices, n_timepoints, numel(models_to_chose_from));
+               all_model_stack = zeros(n_vertices, n_timepoints, n_models);
+               thresholded_model_stack = zeros(n_vertices, n_timepoints, n_models);
             end
 
             data_mesh = stc_metadata.data;
@@ -68,26 +70,37 @@ function [  ] = best_fitting_model()
             else
                 vlt = -inf;
             end
-            data_mesh(data_mesh < vlt) = 0;
+            thresholded_data_mesh = data_mesh;
+            thresholded_data_mesh(thresholded_data_mesh < vlt) = 0;
 
-            if normalise && (sum(data_mesh(:)) > 0)
-               max_val = max(data_mesh(:));
-               data_mesh = data_mesh ./ max_val; 
+            if normalise && (sum(thresholded_data_mesh(:)) > 0)
+               max_val = max(thresholded_data_mesh(:));
+               thresholded_data_mesh = thresholded_data_mesh ./ max_val; 
             end
 
             all_model_stack(:, :, model_i) = data_mesh;
+            thresholded_model_stack(:, :, model_i) = thresholded_data_mesh;
            
             
             %% And display the numbers!
+            
+            % Peak values
+            peak_values = zeros(1, n_timepoints);
+            for t = 1:n_timepoints
+               values_this_timepoint = all_model_stack(:, t, model_i);
+               peak_values(t) = max(values_this_timepoint(:));
+            end
+            peak_string = sprintf('%d, ', peak_values);
+            prints('%s %s peak: [%s]', chi, model, peak_string);
 
-            % For all sig models
+            % supra-threshold cluster extents
             extent_count = zeros(1, n_timepoints);
             for t = 1:n_timepoints
-               vertices_this_timepoint = all_model_stack(:, t, model_i);
+               vertices_this_timepoint = thresholded_model_stack(:, t, model_i);
                extent_count(t) = sum(vertices_this_timepoint(:) > 0);
             end
             count_string = sprintf('%d, ', extent_count);
-            prints('%s-h SIG model %d %s: [%s]', chi, model_i, model, count_string);
+            prints('%s %s extent: [%s]', chi, model, count_string);
            
         end
        
@@ -100,7 +113,7 @@ function [  ] = best_fitting_model()
         
         for v = 1:n_vertices
             for t = 1:n_timepoints
-                model_fits = squeeze(all_model_stack(v, t, :));
+                model_fits = squeeze(thresholded_model_stack(v, t, :));
                 
                 if sum(model_fits(:)) == 0
                     % No models fit here, so leave it zero
