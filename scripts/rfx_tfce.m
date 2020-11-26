@@ -106,8 +106,8 @@ function [observed_map_paths, vertex_level_thresholds] = rfx_tfce(map_paths, n_f
     elseif strcmpi(stat, 'r')
         group_map_observed_overall = mean(all_subject_rhos, 1);
         group_map_observed_overall = squeeze(group_map_observed_overall);
-        else
-            error('Must be ''t'' or ''r''.');
+    else
+        error('Must be ''t'' or ''r''.');
     end
     
     % Split into hemispheres

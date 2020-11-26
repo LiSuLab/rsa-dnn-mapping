@@ -11,8 +11,6 @@ function map_tfce = tfce(map_raw, adjacency_matrix_iwm)
     E = 0.5;
     H = 2;
     
-    % TODO:
-    
     % change in height
     dh = 0.1;
     

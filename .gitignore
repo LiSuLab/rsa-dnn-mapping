@@ -1,3 +1,4 @@
 # Matlab backups
 *.m~
 
+.idea
